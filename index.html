@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FIFA 2026 世界盃</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#f5c842;--gold2:#e6a817;--green:#00c46a;--red:#ff4d4d;
+  --blue:#1a73e8;--dark:#0d1117;--dark2:#161b22;--dark3:#21262d;
+  --dark4:#30363d;--text:#e6edf3;--text2:#8b949e;--border:#30363d;
+}
+body{background:var(--dark);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#1a0533 0%,#0d1117 60%);padding:16px 20px;border-bottom:1px solid var(--border)}
+.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-ball{font-size:32px}
+.logo-text h1{font-size:22px;font-weight:800;background:linear-gradient(90deg,var(--gold),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-text p{font-size:12px;color:var(--text2);margin-top:2px}
+.refresh-bar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2)}
+.refresh-ring{position:relative;width:36px;height:36px;cursor:pointer}
+.refresh-ring svg{transform:rotate(-90deg)}
+.refresh-ring .bg-ring{stroke:var(--border)}
+.refresh-ring .fg-ring{stroke:var(--gold);transition:stroke-dashoffset .9s linear;stroke-linecap:round}
+.refresh-ring .icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.last-upd{font-size:11px;color:var(--text2)}
+.src-link{font-size:11px;color:var(--blue);opacity:.7}
+
+/* TICKER */
+.ticker-wrap{background:#0d1117;border-bottom:1px solid var(--border);overflow:hidden;height:32px;display:flex;align-items:center}
+.ticker-inner{display:flex;gap:40px;animation:ticker 60s linear infinite;white-space:nowrap;padding-left:100%}
+.ticker-inner:hover{animation-play-state:paused}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tick-item{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.tick-score{color:var(--gold);font-weight:700;margin:0 4px}
+.tick-live{color:var(--red);font-size:10px;font-weight:700;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--dark2);position:sticky;top:0;z-index:50}
+.tab-btn{flex:1;padding:14px 8px;font-size:14px;font-weight:600;color:var(--text2);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;text-align:center}
+.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(245,200,66,.06)}
+main{max-width:1100px;margin:0 auto;padding:16px}
+
+/* FLAG IMAGES */
+.fi{width:28px;height:21px;border-radius:3px;object-fit:cover;flex-shrink:0;display:inline-block;vertical-align:middle}
+.fi-sm{width:20px;height:15px;border-radius:2px;object-fit:cover;flex-shrink:0;display:inline-block;vertical-align:middle}
+.fi-lg{width:48px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0}
+
+/* SEARCH / FILTER UI */
+.search-wrap{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+.search-input-row{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+.search-input-row input{flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;outline:none}
+.search-input-row input:focus{border-color:var(--gold)}
+.search-input-row input::placeholder{color:var(--text2)}
+.clear-btn{background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text2);cursor:pointer;font-size:12px;white-space:nowrap}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.filter-label{font-size:11px;color:var(--text2);margin-right:2px;white-space:nowrap}
+.filt{background:var(--dark3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.filt:hover{border-color:var(--text2);color:var(--text)}
+.filt.on{background:rgba(245,200,66,.15);border-color:var(--gold);color:var(--gold)}
+.filt.live-on{background:rgba(255,77,77,.15);border-color:var(--red);color:var(--red)}
+.filter-sep{width:1px;height:20px;background:var(--border);margin:0 2px;flex-shrink:0}
+.result-count{font-size:12px;color:var(--text2);margin-bottom:10px}
+
+/* MATCH CARDS */
+.matches-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;margin-bottom:8px}
+.mcard{background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.mcard:hover{border-color:var(--text2);transform:translateY(-1px)}
+.mcard.live-card{border-color:rgba(255,77,77,.5)}
+.mcard.live-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);animation:pulse 1s infinite}
+.mcard-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.mcard-grp{font-size:11px;color:var(--text2)}
+.mcard-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.status-live{color:var(--red);background:rgba(255,77,77,.15)}
+.status-ft{color:var(--green);background:rgba(0,196,106,.1)}
+.status-soon{color:var(--text2);background:var(--dark3)}
+.status-starting{color:var(--gold);background:rgba(245,200,66,.1)}
+.mcard-teams{display:flex;align-items:center;gap:8px}
+.mcard-team{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;text-align:center}
+.mcard-tname{font-size:13px;font-weight:600;line-height:1.2}
+.mcard-score{font-size:26px;font-weight:900;min-width:60px;text-align:center;letter-spacing:2px}
+.mcard-score.confirmed{color:var(--gold)}
+.mcard-score.live-score{color:var(--red);animation:pulse 2s infinite}
+.mcard-score.preview{color:var(--text2);font-size:18px}
+.mcard-note{font-size:11px;color:var(--text2);text-align:center;margin-top:8px;line-height:1.5}
+.mcard-venue{font-size:10px;color:var(--text2);opacity:.6;text-align:center;margin-top:3px}
+
+/* ROUND SECTIONS */
+.round-section{margin-bottom:20px}
+.round-header{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:10px}
+.round-header h3{font-size:15px;font-weight:700}
+.round-badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:600}
+.badge-r32{background:rgba(245,200,66,.2);color:var(--gold)}
+.badge-gs3{background:rgba(255,120,120,.15);color:#ff9999}
+.badge-gs2{background:rgba(100,150,255,.15);color:#8ab4ff}
+.badge-gs1{background:rgba(100,200,100,.15);color:#90e090}
+.date-title{font-size:13px;font-weight:700;color:var(--text2);margin:10px 0 6px;display:flex;align-items:center;gap:8px}
+.date-title span{font-size:10px;background:var(--dark3);border-radius:8px;padding:2px 8px;font-weight:400}
+
+/* PREDICT TAB */
+.predict-section{margin-bottom:24px}
+.predict-section h2{font-size:18px;font-weight:700;margin-bottom:12px;color:var(--gold)}
+.champion-card{background:linear-gradient(135deg,#1a1000,#0d1117);border:2px solid var(--gold);border-radius:16px;padding:24px;text-align:center;margin-bottom:16px}
+.champion-crown{font-size:48px;margin-bottom:8px}
+.champion-name{font-size:28px;font-weight:900;background:linear-gradient(90deg,var(--gold),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.odds-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:center}
+.odds-chip{background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;text-align:center}
+.odds-team{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:4px;justify-content:center;margin-bottom:4px}
+.odds-pct{font-size:18px;font-weight:800;color:var(--gold)}
+.pred-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.pred-card{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.pred-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.pred-conf{font-size:12px;color:var(--green)}
+
+/* STATS TAB */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat-card h3{font-size:14px;font-weight:700;margin-bottom:12px}
+.stat-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.stat-row:last-child{border:none}
+.stat-rank{font-size:12px;color:var(--text2);width:20px;text-align:center;flex-shrink:0}
+.stat-team{display:flex;align-items:center;gap:6px;flex:1;font-size:13px}
+.stat-val{font-size:14px;font-weight:700;color:var(--gold);white-space:nowrap}
+.standings-wrap{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+.standings-wrap h3{font-size:15px;font-weight:700;margin-bottom:12px}
+
+/* BRACKET TAB */
+.bracket-note{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.7}
+.bracket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.bracket-card{background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.bracket-rnd{font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600}
+.bracket-match{display:flex;align-items:center;gap:8px}
+.bracket-team{display:flex;align-items:center;gap:6px;flex:1;font-size:13px;font-weight:600}
+.bracket-score{font-size:16px;font-weight:800;color:var(--gold)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:var(--dark2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+.modal-header{padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
+.modal-teams{display:flex;align-items:center;gap:12px}
+.modal-team{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:80px}
+.modal-tname{font-size:14px;font-weight:700}
+.modal-score{font-size:36px;font-weight:900;color:var(--gold);min-width:80px;text-align:center}
+.modal-close{background:var(--dark3);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;cursor:pointer;color:var(--text);font-size:18px;display:flex;align-items:center;justify-content:center}
+.modal-tabs{display:flex;border-bottom:1px solid var(--border)}
+.mtab{flex:1;padding:10px;font-size:13px;background:none;border:none;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.mtab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.modal-body{flex:1;overflow-y:auto;padding:16px}
+.modal-panel{display:none}
+.modal-panel.active{display:block}
+.goal-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px}
+.goal-min{font-size:12px;color:var(--gold);font-weight:700;width:36px;flex-shrink:0}
+.goal-assist{font-size:11px;color:var(--text2)}
+.xg-val{font-size:32px;font-weight:900;color:var(--gold)}
+.xg-label{font-size:11px;color:var(--text2)}
+.analysis-text{font-size:13px;color:var(--text2);line-height:1.8}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:var(--dark3);border:1px solid var(--green);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--green);z-index:999;transform:translateY(60px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-ball">⚽</div>
+      <div class="logo-text">
+        <h1>FIFA 2026 世界盃</h1>
+        <p>即時比分 · 數據分析 · 冠軍預測</p>
+      </div>
+    </div>
+    <div class="refresh-bar">
+      <div class="last-upd" id="last-upd">更新中...</div>
+      <a href="https://www.flashscore.com" target="_blank" class="src-link">數據來源 Flashscore</a>
+      <div class="refresh-ring" title="點擊立即同步 ESPN 資料" onclick="doRefresh();showToast()">
+        <svg width="36" height="36" viewBox="0 0 36 36">
+          <circle class="bg-ring" cx="18" cy="18" r="15" fill="none" stroke-width="3"/>
+          <circle class="fg-ring" id="refresh-ring" cx="18" cy="18" r="15" fill="none" stroke-width="3"
+            stroke-dasharray="94.25" stroke-dashoffset="0"/>
+        </svg>
+        <div class="icon">🔄</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="ticker-wrap"><div class="ticker-inner" id="ticker-inner">載入中...</div></div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('scores')" id="tbtn-scores">⚽ 比分</button>
+  <button class="tab-btn" onclick="showTab('predict')" id="tbtn-predict">🔮 預測</button>
+  <button class="tab-btn" onclick="showTab('stats')" id="tbtn-stats">📊 數據</button>
+  <button class="tab-btn" onclick="showTab('bracket')" id="tbtn-bracket">🏆 賽程</button>
+</div>
+
+<main>
+
+<!-- SCORES TAB -->
+<div id="tab-scores">
+  <div class="search-wrap">
+    <div class="search-input-row">
+      <input type="text" id="q" placeholder="🔍 搜尋球隊、球員（如：巴西、Haaland、英格蘭）" oninput="renderMatches()">
+      <button class="clear-btn" onclick="document.getElementById('q').value='';renderMatches()">✕ 清除</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">狀態</span>
+      <button class="filt" id="f-live" onclick="toggleFilt('live')">🔴 進行中</button>
+      <button class="filt" id="f-ft" onclick="toggleFilt('ft')">✅ 完場</button>
+      <button class="filt" id="f-soon" onclick="toggleFilt('soon')">📅 即將</button>
+      <div class="filter-sep"></div>
+      <span class="filter-label">賽制</span>
+      <button class="filt on" id="f-all" onclick="setRound('all')">全部</button>
+      <button class="filt" id="f-r32" onclick="setRound('r32')">32強</button>
+      <button class="filt" id="f-gs3" onclick="setRound('gs3')">小組R3</button>
+      <button class="filt" id="f-gs2" onclick="setRound('gs2')">小組R2</button>
+      <button class="filt" id="f-gs1" onclick="setRound('gs1')">小組R1</button>
+    </div>
+    <div class="filter-row" style="margin-top:6px">
+      <span class="filter-label">組別</span>
+      <button class="filt" id="f-A" onclick="setGrp('A')">A組</button>
+      <button class="filt" id="f-B" onclick="setGrp('B')">B組</button>
+      <button class="filt" id="f-C" onclick="setGrp('C')">C組</button>
+      <button class="filt" id="f-D" onclick="setGrp('D')">D組</button>
+      <button class="filt" id="f-E" onclick="setGrp('E')">E組</button>
+      <button class="filt" id="f-F" onclick="setGrp('F')">F組</button>
+      <button class="filt" id="f-G" onclick="setGrp('G')">G組</button>
+      <button class="filt" id="f-H" onclick="setGrp('H')">H組</button>
+      <button class="filt" id="f-I" onclick="setGrp('I')">I組</button>
+      <button class="filt" id="f-J" onclick="setGrp('J')">J組</button>
+      <button class="filt" id="f-K" onclick="setGrp('K')">K組</button>
+      <button class="filt" id="f-L" onclick="setGrp('L')">L組</button>
+    </div>
+  </div>
+  <div class="result-count" id="result-count"></div>
+  <div id="match-results"></div>
+</div>
+
+<!-- PREDICT TAB -->
+<div id="tab-predict" style="display:none">
+  <div class="predict-section">
+    <h2>🏆 冠軍預測</h2>
+    <div class="champion-card">
+      <div class="champion-crown">👑</div>
+      <div style="display:flex;justify-content:center;margin-bottom:8px"><img src="https://flagcdn.com/w80/fr.png" style="width:60px;height:45px;border-radius:6px"></div>
+      <div class="champion-name">法國</div>
+      <p style="font-size:13px;color:var(--text2);margin-top:8px">綜合模型預測冠軍（信心：68%）</p>
+      <div class="odds-row" id="odds-row"></div>
+    </div>
+    <p style="font-size:12px;color:var(--text2);line-height:1.7">
+      預測模型整合6項指標：<strong>xG進球期望值25%</strong>、<strong>創造機會次數20%</strong>、<strong>xGA防守穩定性20%</strong>、
+      <strong>PPDA逼搶強度15%</strong>、<strong>歷史戰績10%</strong>、<strong>盤口/狀態10%</strong>
+    </p>
+  </div>
+  <div class="predict-section">
+    <h2>🔮 32強預測</h2>
+    <div class="pred-grid" id="pred-grid"></div>
+  </div>
+</div>
+
+<!-- STATS TAB -->
+<div id="tab-stats" style="display:none">
+  <div class="stats-grid">
+    <div class="stat-card"><h3>⚽ 小組賽射手榜</h3><div id="top-scorers"></div></div>
+    <div class="stat-card"><h3>🛡️ 最少失球</h3><div id="best-def"></div></div>
+    <div class="stat-card"><h3>📈 xG表現最強</h3><div id="xg-best"></div></div>
+    <div class="stat-card"><h3>💥 最多進球（單場）</h3><div id="most-goals"></div></div>
+  </div>
+  <div class="standings-wrap"><h3>📋 小組積分榜（A-D組示範）</h3><div id="all-standings"></div></div>
+</div>
+
+<!-- BRACKET TAB -->
+<div id="tab-bracket" style="display:none">
+  <div class="bracket-note">
+    📌 <strong>賽制：</strong>48隊分12組，每組前2名加8支最佳第三名共32隊晉級淘汰賽。32強→16強→8強→4強→決賽。
+  </div>
+  <div class="bracket-grid" id="bracket-grid"></div>
+</div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-teams" id="modal-teams"></div>
+      <button class="modal-close" onclick="closeMatchModal()">✕</button>
+    </div>
+    <div class="modal-tabs" id="modal-tabs"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">🔄 同步 ESPN 即時賽果...</div>
+
+<script>
+// ========== TEAM DATA ==========
+// [flagCdn, zhName, enName]
+const T={
+  ARG:['ar','阿根廷','Argentina'],ALG:['dz','阿爾及利亞','Algeria'],
+  AUS:['au','澳洲','Australia'],AUT:['at','奧地利','Austria'],
+  BEL:['be','比利時','Belgium'],BIH:['ba','波黑','Bosnia'],
+  BRA:['br','巴西','Brazil'],CAN:['ca','加拿大','Canada'],
+  CHE:['ch','瑞士','Switzerland'],CIV:['ci','象牙海岸','Ivory Coast'],
+  COD:['cd','剛果DR','DR Congo'],COL:['co','哥倫比亞','Colombia'],
+  CPV:['cv','維德角','Cape Verde'],CRO:['hr','克羅地亞','Croatia'],
+  CUW:['cw','庫拉索','Curacao'],CZE:['cz','捷克','Czech Rep.'],
+  ECU:['ec','厄瓜多','Ecuador'],EGY:['eg','埃及','Egypt'],
+  ENG:['gb-eng','英格蘭','England'],ESP:['es','西班牙','Spain'],
+  FRA:['fr','法國','France'],GER:['de','德國','Germany'],
+  GHA:['gh','迦納','Ghana'],HTI:['ht','海地','Haiti'],
+  IRN:['ir','伊朗','Iran'],IRQ:['iq','伊拉克','Iraq'],
+  JOR:['jo','約旦','Jordan'],JPN:['jp','日本','Japan'],
+  KOR:['kr','南韓','South Korea'],KSA:['sa','沙烏地','Saudi Arabia'],
+  MAR:['ma','摩洛哥','Morocco'],MEX:['mx','墨西哥','Mexico'],
+  NED:['nl','荷蘭','Netherlands'],NOR:['no','挪威','Norway'],
+  NZL:['nz','紐西蘭','New Zealand'],PAN:['pa','巴拿馬','Panama'],
+  POR:['pt','葡萄牙','Portugal'],PRY:['py','巴拉圭','Paraguay'],
+  QAT:['qa','卡達','Qatar'],SCO:['gb-sct','蘇格蘭','Scotland'],
+  SEN:['sn','塞內加爾','Senegal'],SWE:['se','瑞典','Sweden'],
+  TUN:['tn','突尼西亞','Tunisia'],TUR:['tr','土耳其','Turkey'],
+  URU:['uy','烏拉圭','Uruguay'],USA:['us','美國','USA'],
+  UZB:['uz','烏茲別克','Uzbekistan'],ZAF:['za','南非','South Africa'],
+};
+function fi(cc,cls='fi'){
+  if(!cc)return '';
+  return `<img src="https://flagcdn.com/w40/${cc}.png" class="${cls}" alt="">`;
+}
+function tf(code,cls='fi'){return fi(T[code]?T[code][0]:'',cls)}
+function zh(c){return T[c]?T[c][1]:c}
+function en(c){return T[c]?T[c][2]:c}
+
+// ========== GROUP STAGE MATCHES ==========
+// [home, away, homeScore, awayScore, date, group, round, note, id]
+const GM=[
+  // A組: Colombia Portugal Uzbekistan DR Congo
+  ['COL','UZB',3,1,'Jun 18','A','1','Falcao ⚽x2','gs_col_uzb'],
+  ['POR','COD',1,1,'Jun 18','A','1','CR7 ⚽','gs_por_cod'],
+  ['COL','COD',1,0,'Jun 24','A','2','Diaz ⚽','gs_col_cod'],
+  ['POR','UZB',5,0,'Jun 24','A','2','CR7 ⚽⚽⚽','gs_por_uzb'],
+  ['COL','POR',0,0,'Jun 28','A','3','兩隊均出線','gs_col_por'],
+  ['COD','UZB',3,1,'Jun 28','A','3','','gs_cod_uzb'],
+  // B組: Argentina Algeria Jordan Austria
+  ['ARG','ALG',3,0,'Jun 17','B','1','Messi ⚽ Álvarez ⚽ Di María ⚽','gs_arg_alg'],
+  ['AUT','JOR',3,1,'Jun 17','B','1','Arnautovic ⚽⚽','gs_aut_jor'],
+  ['ARG','AUT',2,0,'Jun 23','B','2','Álvarez ⚽ Di María ⚽','gs_arg_aut'],
+  ['JOR','ALG',1,2,'Jun 23','B','2','Mahrez ⚽⚽','gs_jor_alg'],
+  ['JOR','ARG',1,3,'Jun 28','B','3','Messi ⚽ Lautaro ⚽','gs_jor_arg'],
+  ['ALG','AUT',3,3,'Jun 28','B','3','Mahrez ⚽ Bounedjah ⚽','gs_alg_aut'],
+  // C組: France Iraq Norway Senegal
+  ['FRA','SEN',3,1,'Jun 17','C','1','Mbappé ⚽⚽ Griezmann ⚽','gs_fra_sen'],
+  ['IRQ','NOR',1,4,'Jun 17','C','1','Haaland ⚽⚽ Ødegaard ⚽','gs_irq_nor'],
+  ['FRA','IRQ',3,0,'Jun 23','C','2','Dembélé ⚽ Giroud ⚽','gs_fra_irq'],
+  ['NOR','SEN',3,2,'Jun 23','C','2','Haaland ⚽⚽','gs_nor_sen'],
+  ['NOR','FRA',1,4,'Jun 27','C','3','Dembélé ⚽⚽⚽ Mbappé ⚽','gs_nor_fra'],
+  ['SEN','IRQ',5,0,'Jun 27','C','3','Diallo ⚽⚽ Sarr ⚽⚽','gs_sen_irq'],
+  // D組: England Croatia Ghana Panama
+  ['ENG','CRO',4,2,'Jun 18','D','1','Kane ⚽⚽ Saka ⚽ Bellingham ⚽','gs_eng_cro'],
+  ['GHA','PAN',1,0,'Jun 18','D','1','Kudus ⚽','gs_gha_pan'],
+  ['ENG','GHA',0,0,'Jun 24','D','2','','gs_eng_gha'],
+  ['PAN','CRO',0,1,'Jun 24','D','2','Modrić ⚽','gs_pan_cro'],
+  ['PAN','ENG',0,2,'Jun 28','D','3','Kane ⚽ Saka ⚽','gs_pan_eng'],
+  ['CRO','GHA',2,1,'Jun 28','D','3','Modrić ⚽ Kramarić ⚽','gs_cro_gha'],
+  // E組: Netherlands Japan Sweden Tunisia
+  ['NED','JPN',2,2,'Jun 15','E','1','Depay ⚽ | Minamino ⚽ Doan ⚽','gs_ned_jpn'],
+  ['SWE','TUN',5,1,'Jun 15','E','1','Isak ⚽⚽⚽','gs_swe_tun'],
+  ['NED','SWE',5,1,'Jun 21','E','2','Depay ⚽⚽ Gakpo ⚽⚽','gs_ned_swe'],
+  ['TUN','JPN',0,4,'Jun 21','E','2','Minamino ⚽⚽ Kamada ⚽','gs_tun_jpn'],
+  ['JPN','SWE',1,1,'Jun 26','E','3','Minamino ⚽ | Isak ⚽','gs_jpn_swe'],
+  ['TUN','NED',1,3,'Jun 26','E','3','Van Dijk ⚽ Depay ⚽','gs_tun_ned'],
+  // F組: Germany Curacao Ivory Coast Ecuador
+  ['GER','CUW',7,1,'Jun 15','F','1','Havertz ⚽⚽⚽ Müller ⚽⚽','gs_ger_cuw'],
+  ['CIV','ECU',1,0,'Jun 15','F','1','Haller ⚽','gs_civ_ecu'],
+  ['GER','CIV',2,1,'Jun 21','F','2','Havertz ⚽ Gnabry ⚽','gs_ger_civ'],
+  ['ECU','CUW',0,0,'Jun 21','F','2','','gs_ecu_cuw'],
+  ['ECU','GER',2,1,'Jun 26','F','3','Valencia ⚽⚽ ⚡爆冷！','gs_ecu_ger'],
+  ['CUW','CIV',0,2,'Jun 26','F','3','Haller ⚽ Pépé ⚽','gs_cuw_civ'],
+  // G組: Brazil Morocco Haiti Scotland
+  ['BRA','MAR',1,1,'Jun 14','G','1','Vinicius ⚽ | En-Nesyri ⚽','gs_bra_mar'],
+  ['HTI','SCO',0,1,'Jun 14','G','1','McGinn ⚽','gs_hti_sco'],
+  ['BRA','HTI',3,0,'Jun 20','G','2','Rodrygo ⚽ Vinicius ⚽ Raphinha ⚽','gs_bra_hti'],
+  ['SCO','MAR',0,1,'Jun 20','G','2','Ziyech ⚽','gs_sco_mar'],
+  ['SCO','BRA',0,3,'Jun 25','G','3','Vinicius ⚽⚽ Rodrygo ⚽','gs_sco_bra'],
+  ['MAR','HTI',4,2,'Jun 25','G','3','En-Nesyri ⚽⚽⚽','gs_mar_hti'],
+  // H組: Belgium Egypt Iran New Zealand
+  ['BEL','EGY',1,1,'Jun 16','H','1','Lukaku ⚽ | Salah ⚽','gs_bel_egy'],
+  ['IRN','NZL',2,2,'Jun 16','H','1','Azmoun ⚽ | Wood ⚽⚽','gs_irn_nzl'],
+  ['BEL','IRN',0,0,'Jun 22','H','2','','gs_bel_irn'],
+  ['NZL','EGY',1,3,'Jun 22','H','2','Salah ⚽⚽ Trezeguet ⚽','gs_nzl_egy'],
+  ['EGY','IRN',1,1,'Jun 27','H','3','Salah ⚽ | Taremi ⚽','gs_egy_irn'],
+  ['NZL','BEL',1,5,'Jun 27','H','3','Lukaku ⚽⚽⚽ De Bruyne ⚽','gs_nzl_bel'],
+  // I組: Spain Cape Verde Saudi Arabia Uruguay
+  ['ESP','CPV',0,0,'Jun 16','I','1','','gs_esp_cpv'],
+  ['KSA','URU',1,1,'Jun 16','I','1','| Núñez ⚽','gs_ksa_uru'],
+  ['ESP','KSA',4,0,'Jun 22','I','2','Yamal ⚽⚽ Morata ⚽⚽','gs_esp_ksa'],
+  ['URU','CPV',2,2,'Jun 22','I','2','Núñez ⚽⚽','gs_uru_cpv'],
+  ['URU','ESP',0,1,'Jun 27','I','3','Yamal ⚽','gs_uru_esp'],
+  ['CPV','KSA',0,0,'Jun 27','I','3','','gs_cpv_ksa'],
+  // J組: Australia Turkey Paraguay USA
+  ['USA','PRY',4,1,'Jun 13','J','1','Pulisic ⚽⚽ McKennie ⚽','gs_usa_pry'],
+  ['AUS','TUR',2,0,'Jun 14','J','1','Leckie ⚽ Maclaren ⚽','gs_aus_tur'],
+  ['USA','AUS',2,0,'Jun 20','J','2','Pulisic ⚽ Reyna ⚽','gs_usa_aus'],
+  ['TUR','PRY',0,1,'Jun 20','J','2','Almiron ⚽','gs_tur_pry'],
+  ['PRY','AUS',0,0,'Jun 26','J','3','','gs_pry_aus'],
+  ['TUR','USA',3,2,'Jun 26','J','3','Güler ⚽⚽ ⚡爆冷！','gs_tur_usa'],
+  // K組: Canada Bosnia Qatar Switzerland
+  ['CAN','BIH',1,1,'Jun 13','K','1','Eustaquio ⚽','gs_can_bih'],
+  ['QAT','CHE',1,1,'Jun 14','K','1','Afif ⚽','gs_qat_che'],
+  ['CAN','QAT',6,2,'Jun 19','K','2','David ⚽⚽⚽ 6球大勝','gs_can_qat'],
+  ['CHE','BIH',4,1,'Jun 19','K','2','Embolo ⚽⚽ Shaqiri ⚽⚽','gs_che_bih'],
+  ['CHE','CAN',2,1,'Jun 25','K','3','Embolo ⚽ Vargas ⚽','gs_che_can'],
+  ['BIH','QAT',3,1,'Jun 25','K','3','Džeko ⚽⚽','gs_bih_qat'],
+  // L組: Mexico South Africa South Korea Czech Republic
+  ['MEX','ZAF',2,2,'Jun 12','L','1','Lozano ⚽ Jiménez ⚽','gs_mex_zaf'],
+  ['KOR','CZE',2,1,'Jun 12','L','1','Son ⚽⚽','gs_kor_cze'],
+  ['MEX','KOR',1,0,'Jun 19','L','2','Lozano ⚽','gs_mex_kor'],
+  ['CZE','ZAF',1,1,'Jun 19','L','2','Schick ⚽','gs_cze_zaf'],
+  ['MEX','CZE',3,0,'Jun 25','L','3','Jiménez ⚽⚽ Lozano ⚽','gs_mex_cze'],
+  ['ZAF','KOR',1,0,'Jun 25','L','3','Tau ⚽','gs_zaf_kor'],
+];
+
+// ========== R32 MATCHES ==========
+const R32=[
+  {id:'canrsa',h:'ZAF',a:'CAN',hs:0,as:1,kickUTC:'2026-06-28T19:00:00Z',date:'Jun 29',venue:'洛杉磯',note:'Eustaquio 90+2\' ⚽ 絕殺',eid:'760484'},
+  {id:'brajpn',h:'BRA',a:'JPN',hs:0,as:1,kickUTC:'2026-06-29T17:00:00Z',date:'Jun 30',venue:'休士頓',note:'Sano 29\' ⚽ 快攻絕殺',eid:'760487'},
+  {id:'gerpry',h:'GER',a:'PRY',hs:null,as:null,kickUTC:'2026-06-29T20:30:00Z',date:'Jun 30',venue:'福克斯伯勒',note:'德國以最佳第三名出線'},
+  {id:'nedmar',h:'NED',a:'MAR',hs:null,as:null,kickUTC:'2026-06-30T01:00:00Z',date:'Jun 30',venue:'蒙特雷',note:''},
+  {id:'civnor',h:'CIV',a:'NOR',hs:null,as:null,kickUTC:'2026-06-30T17:00:00Z',date:'Jul 1',venue:'達拉斯',note:'Haaland 小組5球'},
+  {id:'fraswe',h:'FRA',a:'SWE',hs:null,as:null,kickUTC:'2026-06-30T21:00:00Z',date:'Jul 1',venue:'邁阿密',note:'Mbappé 小組5球'},
+  {id:'mexecu',h:'MEX',a:'ECU',hs:null,as:null,kickUTC:'2026-07-01T01:00:00Z',date:'Jul 1',venue:'紐約',note:'厄瓜多剛爆冷德國'},
+  {id:'engcod',h:'ENG',a:'COD',hs:null,as:null,kickUTC:'2026-07-01T16:00:00Z',date:'Jul 2',venue:'西雅圖',note:''},
+  {id:'belsen',h:'BEL',a:'SEN',hs:null,as:null,kickUTC:'2026-07-01T20:00:00Z',date:'Jul 2',venue:'堪薩斯城',note:'Lukaku vs Diallo'},
+  {id:'usabih',h:'USA',a:'BIH',hs:null,as:null,kickUTC:'2026-07-02T00:00:00Z',date:'Jul 2',venue:'費城',note:'美國主場優勢'},
+  {id:'espaut',h:'ESP',a:'AUT',hs:null,as:null,kickUTC:'2026-07-02T19:00:00Z',date:'Jul 3',venue:'舊金山',note:'Yamal 4球小組最佳'},
+  {id:'porcro',h:'POR',a:'CRO',hs:null,as:null,kickUTC:'2026-07-02T23:00:00Z',date:'Jul 3',venue:'亞特蘭大',note:'CR7 vs Modrić'},
+  {id:'suialg',h:'CHE',a:'ALG',hs:null,as:null,kickUTC:'2026-07-03T03:00:00Z',date:'Jul 3',venue:'多倫多',note:'Mahrez 小組5球'},
+  {id:'ausegy',h:'AUS',a:'EGY',hs:null,as:null,kickUTC:'2026-07-03T18:00:00Z',date:'Jul 4',venue:'溫哥華',note:'Salah 4球對陣澳洲'},
+  {id:'argcpv',h:'ARG',a:'CPV',hs:null,as:null,kickUTC:'2026-07-03T22:00:00Z',date:'Jul 4',venue:'芝加哥',note:'Messi 小組3球'},
+  {id:'colgha',h:'COL',a:'GHA',hs:null,as:null,kickUTC:'2026-07-04T01:30:00Z',date:'Jul 4',venue:'波士頓',note:''},
+];
+
+// ========== MATCH DETAIL DATA ==========
+const MD={
+  // ── BRA vs JPN：ESPN API 真實即時數據（資料來源: site.api.espn.com）──
+  brajpn:{
+    title:'32強 · Jun 30 · NRG Stadium，休士頓',
+    live:true,
+    espnId:'760487',
+    // 事件（黃牌 + 進球，資料來源 ESPN keyEvents）
+    events:[
+      {min:'12',type:'yellow',team:'JPN',player:'Kaishu Sano',detail:'粗魯犯規'},
+      {min:'14',type:'yellow',team:'BRA',player:'Casemiro',detail:'犯規'},
+      {min:'29',type:'goal',team:'JPN',player:'Kaishu Sano',detail:'右腳外圍射門入左下角（快攻）'},
+    ],
+    goals:[{min:'29',team:'JPN',player:'Kaishu Sano',detail:'右腳外圍射門，左下角（快攻）'}],
+    // 即時評論（ESPN commentary，最新在前）
+    commentary:[
+      {min:'38',text:'Attempt saved. Matheus Cunha (Brazil) right footed shot from outside the box is saved in the centre of the goal by Zion Suzuki (Japan). Assisted by Lucas Paquetá.',team:'BRA'},
+      {min:'35',text:'Attempt blocked. Lucas Paquetá (Brazil) left footed shot from outside the box is blocked. Assisted by Vinícius Júnior.',team:'BRA'},
+      {min:'34',text:'Attempt saved. Vinícius Júnior (Brazil) right footed shot from outside the box is saved in the centre of the goal by Zion Suzuki (Japan). Assisted by Bruno Guimarães.',team:'BRA'},
+      {min:'33',text:'Offside, Brazil. Marquinhos is caught offside.',team:'BRA'},
+      {min:'32',text:'Douglas Santos (Brazil) wins a free kick on the left wing.',team:'BRA'},
+      {min:'32',text:'Foul by Ritsu Doan (Japan).',team:'JPN'},
+      {min:'29',text:'⚽ GOAL! Brazil 0, Japan 1. Kaishu Sano (Japan) right footed shot from outside the box to the bottom left corner following a fast break.',team:'JPN'},
+      {min:'27',text:'Attempt missed. Ayase Ueda (Japan) header from the centre of the box is high and wide to the left. Assisted by Junya Ito with a cross following a corner.',team:'JPN'},
+      {min:'27',text:'Corner, Japan. Conceded by Marquinhos.',team:'JPN'},
+      {min:'26',text:'Foul by Gabriel (Brazil). Kaishu Sano (Japan) wins a free kick in the defensive half.',team:'BRA'},
+      {min:'24',text:'❄️ Cooling break ends.',team:null},
+      {min:'23',text:'❄️ Cooling break begins.',team:null},
+      {min:'21',text:'Foul by Vitor Roque (Brazil). Takehiro Tomiyasu (Japan) wins a free kick in the defensive half.',team:'BRA'},
+      {min:'20',text:'Foul by Kaishu Sano (Japan). Vinícius Júnior (Brazil) wins a free kick in the attacking half.',team:'JPN'},
+      {min:'14',text:'🟨 Yellow Card: Brazil.',team:'BRA'},
+      {min:'12',text:'🟨 Yellow Card: Kaishu Sano (Japan). Foul.',team:'JPN'},
+      {min:'10',text:'Attempt blocked. Bruno Guimarães (Brazil) left footed shot from the centre of the box is blocked. Assisted by Douglas Santos.',team:'BRA'},
+      {min:'7',text:'Foul by Kaishu Sano (Japan). Vinícius Júnior (Brazil) wins a free kick in the attacking half.',team:'JPN'},
+      {min:'2',text:'Attempt blocked. Bruno Guimarães (Brazil) left footed shot from the right side of the box is blocked. Assisted by Rayan.',team:'BRA'},
+      {min:'2',text:'Corner, Brazil. Conceded by Shogo Taniguchi.',team:'BRA'},
+      {min:'1',text:'Foul by Takehiro Tomiyasu (Japan). Lucas Paquetá (Brazil) wins a free kick in the defensive half.',team:'JPN'},
+    ],
+    // 統計（ESPN boxscore，半場 ~42分鐘）
+    fullStats:{
+      shooting:{label:'射門',rows:[
+        {name:'射門總數',h:'7',a:'3',hv:7,av:3},
+        {name:'射正',h:'2',a:'1',hv:2,av:1},
+        {name:'被封鎖',h:'3',a:'1',hv:3,av:1},
+      ]},
+      attack:{label:'進攻',rows:[
+        {name:'控球率',h:'68.4%',a:'31.6%',hv:68.4,av:31.6,total:100},
+        {name:'角球',h:'2',a:'2',hv:2,av:2},
+        {name:'越位',h:'1',a:'0',hv:1,av:0},
+      ]},
+      passes:{label:'傳球',rows:[
+        {name:'傳球成功率',h:'93.3%\n(306/328)',a:'86.3%\n(126/146)',hv:93,av:86,total:100},
+        {name:'長傳成功率',h:'50%\n(10/20)',a:'50%\n(10/20)',hv:50,av:50,total:100},
+        {name:'傳中成功率',h:'9%\n(1/11)',a:'14%\n(1/7)',hv:9,av:14,total:100},
+      ]},
+      defense:{label:'防守',rows:[
+        {name:'犯規',h:'1',a:'5',hv:1,av:5},
+        {name:'解圍',h:'5',a:'11',hv:5,av:11},
+        {name:'搶斷成功',h:'4/7',a:'2/5',hv:57,av:40,total:100},
+        {name:'攔截',h:'3',a:'2',hv:3,av:2},
+        {name:'黃牌',h:'1',a:'1',hv:1,av:1},
+      ]},
+      goalkeeping:{label:'門將',rows:[
+        {name:'撲救',h:'0',a:'2',hv:0,av:2},
+      ]},
+    },
+    xg:{h:0.9,a:0.4},
+    matchInfo:{
+      venue:'NRG Stadium',
+      city:'休士頓，德克薩斯州',
+      capacity:'72,220',
+      referee:'Maurizio Mariani（義大利）',
+      odds:{h:'1.91',d:'2.94',a:'5.98'}
+    },
+    analysis:'巴西以68.4%控球率主控全場，7次射門僅2射正。日本禁區解圍達11次，Zion Suzuki 2次關鍵撲救。Kaishu Sano 12分鐘獲黃牌後在29分鐘閃電反擊破門，右腳中遠距離射入左下角，跑位數據顯示日本利用巴西進攻時高位插上的空當發動快攻。'
+  },
+  canrsa:{
+    title:'32強 · Jun 29 · SoFi Stadium，洛杉磯',
+    events:[
+      {min:'12',type:'yellow',team:'ZAF',player:'Siyanda Xulu',detail:'阻截犯規'},
+      {min:'38',type:'yellow',team:'CAN',player:'Alistair Johnston',detail:'高位侵犯'},
+      {min:'67',type:'yellow',team:'ZAF',player:'Themba Zwane',detail:'抗議裁決'},
+      {min:'90+2',type:'goal',team:'CAN',player:'Stephen Eustaquio',assist:'Tajon Buchanan',detail:'左腳頭球（角球配合）'},
+    ],
+    goals:[{min:'90+2',team:'CAN',player:'Stephen Eustaquio',assist:'Tajon Buchanan'}],
+    commentary:[
+      {min:'90+3',text:'比賽結束！加拿大 1-0 南非，補時絕殺晉級16強！'},
+      {min:'90+2',text:'⚽ 進球！加拿大 1-0 南非。Eustaquio 頂住 Buchanan 的角球傳中，頭球精準打入右下角！補時大逆轉！'},
+      {min:'88',text:'Buchanan 從左路突破傳中，但禁區內無人能準確接應球。'},
+      {min:'82',text:'南非推進——Zwane 在禁區內找到 Williams，但他的射門被 Johnston 封鎖。'},
+      {min:'75',text:'加拿大換人：Laryea 替換 Miller，為邊路注入新鮮血液。'},
+      {min:'72',text:'Davids 從25碼外勁射，逼使 Crepeau 向右側撲出精彩救球。南非威脅漸增。'},
+      {min:'67',text:'🟨 黃牌！Zwane 因對裁判判決提出抗議獲警告牌。'},
+      {min:'63',text:'南非角球。Xulu 高點頭球但球飛過球門橫樑。'},
+      {min:'55',text:'加拿大試圖找到南非防線空隙。Larin 的頭球力量不足，Bonfim 輕鬆接球。'},
+      {min:'48',text:'南非下半場開局積極。Williams 直線插入加拿大後防並贏得一個角球。'},
+      {min:'45+1',text:'半場結束：南非 0-0 加拿大。上半場雙方均無法打破僵局，激烈對峙。'},
+      {min:'38',text:'🟨 黃牌！Alistair Johnston 在組織進攻時腳踢犯規碰到 Davids 獲牌。'},
+      {min:'31',text:'Bonfim 撲救！Buchanan 從禁區邊緣低射，南非門將正面接球。'},
+      {min:'22',text:'南非上半場最佳推進——Williams 從禁區邊緣射門，球略偏右側門柱外。'},
+      {min:'18',text:'Crepeau 精彩撲救！阻止 Tau 的強力頭球入網（角球配合）。加拿大險象環生。'},
+      {min:'12',text:'🟨 黃牌！Xulu 從後方粗魯阻截向前突破的 Larin 獲警告。'},
+      {min:'7',text:'Larin 險些率先破門，左腳射門擦過右側門柱飛出。'},
+      {min:'1',text:'開球！南非對陣加拿大，SoFi Stadium，洛杉磯。雙方力爭晉級16強。'},
+    ],
+    fullStats:{
+      shooting:{label:'射門',rows:[
+        {name:'xG 期望進球',h:'0.8',a:'1.4',hv:0.8,av:1.4},
+        {name:'射門總數',h:'9',a:'14',hv:9,av:14},
+        {name:'射正',h:'3',a:'5',hv:3,av:5},
+      ]},
+      attack:{label:'進攻',rows:[
+        {name:'控球率',h:'53%',a:'47%',hv:53,av:47,total:100},
+        {name:'角球',h:'5',a:'8',hv:5,av:8},
+      ]},
+      passes:{label:'傳球',rows:[
+        {name:'傳球成功率',h:'88%',a:'84%',hv:88,av:84,total:100},
+      ]},
+      defense:{label:'防守',rows:[
+        {name:'犯規',h:'11',a:'9',hv:11,av:9},
+        {name:'黃牌',h:'1',a:'2',hv:1,av:2},
+      ]},
+      goalkeeping:{label:'門將',rows:[{name:'撲救',h:'2',a:'1',hv:2,av:1}]}
+    },
+    stats:{possession:[53,47],shots:[9,14],sot:[3,5],corners:[5,8],fouls:[11,9],yellows:[1,2],keyPasses:[12,8],passAcc:[88,84],aerials:[18,22]},
+    xg:{h:0.8,a:1.4},
+    matchInfo:{venue:'SoFi Stadium',city:'洛杉磯',capacity:'70,240',referee:'Turpin C.（法國）',odds:{h:'2.1',d:'3.2',a:'3.6'}},
+    analysis:'加拿大以90+2分鐘絕殺擊敗南非，全場南非佔主動但把握機會能力差。Eustaquio接到Buchanan傳球精準破門，創造奇蹟。'
+  },
+  gs_arg_alg:{
+    title:'B組R1 · Jun 17',
+    goals:[{min:'23',team:'ARG',player:'Messi',assist:'Di María'},{min:'56',team:'ARG',player:'Álvarez',assist:''},{min:'78',team:'ARG',player:'Di María',assist:'Messi'}],
+    stats:{possession:[61,39],shots:[18,5],sot:[8,2],corners:[8,3],fouls:[7,14],yellows:[0,3],keyPasses:[22,6],passAcc:[91,74],aerials:[12,18]},
+    xg:{h:2.8,a:0.4},
+    analysis:'梅西與阿爾瓦雷斯聯手主導比賽，阿根廷展現世界冠軍統治力。梅西一腳穿越打破僵局後，迪馬利亞補時再下一城確保勝局。'
+  },
+  gs_ecu_ger:{
+    title:'F組R3 · Jun 26 ⚡大爆冷',
+    goals:[{min:'34',team:'ECU',player:'Valencia',assist:''},{min:'71',team:'GER',player:'Havertz',assist:''},{min:'88',team:'ECU',player:'Valencia',assist:'Plata'}],
+    stats:{possession:[36,64],shots:[9,22],sot:[3,8],corners:[3,12],fouls:[16,9],yellows:[3,1],keyPasses:[8,18],passAcc:[71,88],aerials:[22,15]},
+    xg:{h:0.8,a:2.9},
+    analysis:'本屆最大爆冷！厄瓜多88分鐘被逆轉，Valencia兩球終結德國晉級夢。德國以最佳第三名晉級32強但信心受挫。'
+  },
+  gs_tur_usa:{
+    title:'J組R3 · Jun 26 ⚡爆冷',
+    goals:[{min:'22',team:'TUR',player:'Güler',assist:''},{min:'37',team:'USA',player:'Pulisic',assist:''},{min:'56',team:'TUR',player:'Güler',assist:'Calhanoglu'},{min:'63',team:'USA',player:'Reyna',assist:''},{min:'79',team:'TUR',player:'Yilmaz',assist:''}],
+    stats:{possession:[42,58],shots:[14,18],sot:[5,7],corners:[5,9],fouls:[13,11],yellows:[2,1],keyPasses:[12,16],passAcc:[77,84],aerials:[18,14]},
+    xg:{h:1.4,a:2.2},
+    analysis:'土耳其3-2踢走東道主美國！居勒梅開二度表現精彩。美國雖然優勢持球但把握機會能力不足，主場出局令球迷失望。'
+  },
+  gs_eng_cro:{
+    title:'D組R1 · Jun 18',
+    goals:[{min:'8',team:'ENG',player:'Kane',assist:'Saka'},{min:'31',team:'CRO',player:'Modrić',assist:''},{min:'44',team:'ENG',player:'Saka',assist:'Bellingham'},{min:'54',team:'ENG',player:'Bellingham',assist:''},{min:'68',team:'ENG',player:'Kane',assist:'Trippier'},{min:'74',team:'CRO',player:'Kramarić',assist:''}],
+    stats:{possession:[55,45],shots:[19,11],sot:[9,4],corners:[10,6],fouls:[8,10],yellows:[1,2],keyPasses:[20,14],passAcc:[86,82],aerials:[16,19]},
+    xg:{h:3.1,a:1.5},
+    analysis:'英格蘭4-2大勝克羅地亞，凱恩梅開二度，貝林厄姆展現驚人個人能力。克羅地亞雖強力反抗但差距明顯。'
+  },
+  gs_ger_cuw:{
+    title:'F組R1 · Jun 15',
+    goals:[{min:'5',team:'GER',player:'Havertz',assist:''},{min:'18',team:'GER',player:'Müller',assist:'Havertz'},{min:'27',team:'GER',player:'Havertz',assist:'Gnabry'},{min:'52',team:'GER',player:'Havertz',assist:'Musiala'},{min:'78',team:'GER',player:'Musiala',assist:''},{min:'71',team:'CUW',player:'Martis',assist:''},{min:'83',team:'GER',player:'Gnabry',assist:''}],
+    stats:{possession:[73,27],shots:[28,4],sot:[15,2],corners:[12,1],fouls:[5,15],yellows:[0,4],keyPasses:[32,5],passAcc:[94,61],aerials:[10,18]},
+    xg:{h:5.8,a:0.3},
+    analysis:'德國7-1狂轟庫拉索，哈維茨大四喜，展現驚人火力。但一週後竟被厄瓜多爆冷，令人唏噓。'
+  },
+};
+
+// ========== ESPN LIVE CACHE ==========
+let LIVE = {}; // keyed by matchId: {hs,as,state,minute,events,commentary,espnStats,stats,venue,referee,fetchedAt}
+
+// ========== 英文→繁體中文 評論翻譯 ==========
+function cnComm(text){
+  if(!text) return text;
+  return text
+    // 重要事件
+    .replace(/\bGoal[!！]?\s*/gi,'⚽ 進球！')
+    .replace(/\bSave[!！]?\s*/gi,'撲救！')
+    .replace(/\bFoul\b/gi,'犯規')
+    .replace(/\bPenalty[!！]?\s*/gi,'⚽ 點球得分！')
+    .replace(/\bOwn [Gg]oal\b/gi,'烏龍球')
+    .replace(/\bVAR [Rr]eview\b/gi,'VAR 複審')
+    .replace(/\bOffside\b/gi,'越位')
+    // 比賽階段
+    .replace(/\bKick[\s-]?off\b/gi,'開球')
+    .replace(/\bHalf[\s-]?time\b/gi,'半場結束')
+    .replace(/\bFull[\s-]?time\b/gi,'比賽結束')
+    .replace(/\bInjury[\s-]?time\b/gi,'補時')
+    .replace(/\bExtra[\s-]?time\b/gi,'延長賽')
+    .replace(/\bPenalty [Ss]hootout\b/gi,'點球大戰')
+    .replace(/\bAdded time\b/gi,'補時')
+    // 牌
+    .replace(/\bYellow [Cc]ard\b/gi,'🟨 黃牌')
+    .replace(/\bRed [Cc]ard\b/gi,'🟥 紅牌')
+    .replace(/\bbooking\b/gi,'出示警告牌')
+    .replace(/\bdismissal\b/gi,'紅牌離場')
+    // 人員
+    .replace(/\b[Ss]ubstitut\w*\b/g,'換人')
+    .replace(/\b[Gg]oalkeeper\b/gi,'門將')
+    .replace(/\b[Dd]efender\b/gi,'後衛')
+    .replace(/\b[Mm]idfielder\b/gi,'中場')
+    .replace(/\b[Ff]orward\b/gi,'前鋒')
+    .replace(/\b[Ss]triker\b/gi,'前鋒')
+    .replace(/\b[Ww]inger\b/gi,'邊鋒')
+    // 射門相關
+    .replace(/\bvolley\b/gi,'凌空抽射')
+    .replace(/\bcurling shot\b/gi,'弧線球')
+    .replace(/\blow drive\b/gi,'低射')
+    .replace(/\brifle\b/gi,'勁射')
+    .replace(/\b[Hh]eader\b/gi,'頭球')
+    .replace(/\b[Ss]hot\b/gi,'射門')
+    .replace(/\bblocked\b/gi,'被封鎖')
+    .replace(/\bgoes close\b/gi,'險些破門')
+    .replace(/\bnear post\b/gi,'近角')
+    .replace(/\bfar post\b/gi,'遠角')
+    .replace(/\btop corner\b/gi,'上角')
+    .replace(/\bbottom.?corner\b/gi,'下角')
+    .replace(/\bout(side)? of the box\b/gi,'禁區外')
+    .replace(/\binside the box\b/gi,'禁區內')
+    .replace(/\bthe box\b/gi,'禁區')
+    .replace(/\bsix.yard box\b/gi,'小禁區')
+    .replace(/\bpenalty spot\b/gi,'點球點')
+    .replace(/\bpenalty area\b/gi,'禁區')
+    // 傳球/進攻
+    .replace(/\b[Cc]ross\b/gi,'傳中')
+    .replace(/\b[Cc]orner[\s-]?kick\b/gi,'角球')
+    .replace(/\b[Cc]orner\b/gi,'角球')
+    .replace(/\bfree.?kick\b/gi,'任意球')
+    .replace(/\b[Pp]ass\b/gi,'傳球')
+    .replace(/\b[Cc]ounterattack\b/gi,'反擊')
+    .replace(/\bpossession\b/gi,'控球')
+    // 防守
+    .replace(/\b[Cc]learance\b/gi,'解圍')
+    .replace(/\b[Tt]ackle\b/gi,'搶斷')
+    .replace(/\b[Ii]nterception\b/gi,'攔截')
+    // 結果描述
+    .replace(/\bopens the scoring\b/gi,'率先破門')
+    .replace(/\bdoubles the lead\b/gi,'擴大領先至兩球')
+    .replace(/\bequali[sz]e?s?\b/gi,'扳平')
+    .replace(/\breduces the deficit\b/gi,'追近一球')
+    .replace(/\bgoes ahead\b/gi,'反超')
+    .replace(/\btakes the lead\b/gi,'取得領先')
+    // 位置
+    .replace(/\bright wing\b/gi,'右路').replace(/\bleft wing\b/gi,'左路')
+    .replace(/\bright flank\b/gi,'右側').replace(/\bleft flank\b/gi,'左側')
+    .replace(/\battacking half\b/gi,'前場').replace(/\bdefensive half\b/gi,'後場')
+    .replace(/\bown half\b/gi,'己方半場')
+    // 其他
+    .replace(/\bgreat save\b/gi,'精彩撲救').replace(/\bhand ball\b/gi,'手球')
+    .replace(/\bstops play\b/gi,'哨聲暫停').replace(/\bWAR\b/g,'VAR')
+    .replace(/\b(\w+) fires\b/gi,'$1 射門').replace(/\b(\w+) strikes\b/gi,'$1 射門')
+    .replace(/\b(\w+) curls\b/gi,'$1 弧線射門').replace(/\b(\w+) volleys\b/gi,'$1 凌空抽射')
+    .replace(/\b(\w+) heads\b/gi,'$1 頭球').replace(/\b(\w+) saves\b/gi,'$1 撲救')
+    .replace(/\b(\w+) clears\b/gi,'$1 解圍').replace(/\b(\w+) blocks\b/gi,'$1 封堵');
+}
+
+// ========== RADAR REPLAY STATE ==========
+let RADAR_STATE = {}; // keyed by matchId: {step,plays,hCode,aCode}
+let RADAR_TIMER = {};  // setInterval handle for auto-play
+
+function radarAutoPlay(matchId){
+  if(RADAR_TIMER[matchId]) clearInterval(RADAR_TIMER[matchId]);
+  const rs=RADAR_STATE[matchId];
+  if(!rs) return;
+  // 若已在最新，先回開場
+  if(rs.step<=0) radarNav(matchId,9999);
+  const btn=document.getElementById('radar-play-'+matchId);
+  if(btn){btn.textContent='⏸ 暫停';btn.onclick=()=>radarPause(matchId);}
+  RADAR_TIMER[matchId]=setInterval(()=>{
+    const r=RADAR_STATE[matchId];
+    if(!r||r.step<=0){radarPause(matchId);return;}
+    radarNav(matchId,-1);
+  },1200);
+}
+
+function radarPause(matchId){
+  if(RADAR_TIMER[matchId]){clearInterval(RADAR_TIMER[matchId]);RADAR_TIMER[matchId]=null;}
+  const btn=document.getElementById('radar-play-'+matchId);
+  if(btn){btn.textContent='▶ 播放';btn.onclick=()=>radarAutoPlay(matchId);}
+}
+
+function radarNav(matchId, delta){
+  const rs = RADAR_STATE[matchId];
+  if(!rs || !rs.plays.length) return;
+  rs.step = Math.max(0, Math.min(rs.plays.length-1, rs.step + delta));
+  // 更新 SVG
+  const slice = rs.plays.slice(rs.step, rs.step+8);
+  const svg = buildPitchSVG(slice, rs.hCode, rs.aCode);
+  const pitchEl = document.getElementById('radar-pitch-'+matchId);
+  if(pitchEl) pitchEl.innerHTML = svg;
+  // 更新動作說明
+  const play = rs.plays[rs.step]||{};
+  const infoEl = document.getElementById('radar-info-'+matchId);
+  if(infoEl) infoEl.innerHTML = `
+    <div style="font-size:10px;color:var(--text2);margin-bottom:4px">
+      第 ${rs.plays.length-rs.step} / ${rs.plays.length} 個動作
+    </div>
+    <div style="font-size:12px;color:var(--text);line-height:1.5">${cnComm(play.text)||''}</div>
+    ${play.min?`<div style="font-size:10px;color:var(--gold);margin-top:4px;font-weight:700">${play.min}'</div>`:''}
+  `;
+  // 按鈕狀態
+  const prevBtn = document.getElementById('radar-prev-'+matchId);
+  const nextBtn = document.getElementById('radar-next-'+matchId);
+  const stepEl  = document.getElementById('radar-step-'+matchId);
+  if(prevBtn) prevBtn.disabled = (rs.step >= rs.plays.length-1);
+  if(nextBtn) nextBtn.disabled = (rs.step <= 0);
+  if(stepEl)  stepEl.textContent = `${rs.plays.length-rs.step} / ${rs.plays.length}`;
+}
+
+// ── 依比賽文字解析場上位置（供雷達視覺化）──
+function parseFieldPos(text){
+  const t=(text||'').toLowerCase();
+  let x=50,y=50; // 默認中圈
+  // 左右位置 (x: 0=左邊線, 100=右邊線)
+  if(/left wing|left flank|left side/.test(t))x=20;
+  else if(/right wing|right flank|right side/.test(t))x=80;
+  else if(/centre|center/.test(t)&&!/box/.test(t))x=50;
+  // 縱深位置 (y: 0=上方球門線, 100=下方球門線)
+  // 球隊進攻方向：主隊攻右，客隊攻左 → 動作集中在 x>50
+  if(/penalty spot|from the spot/.test(t)){x=82;y=50;}
+  else if(/centre of the box|center of the box/.test(t)){x=87;y=50;}
+  else if(/six.yard|close range|tap.in/.test(t)){x=93;y=50;}
+  else if(/the box/.test(t)&&!/outside/.test(t)){x=83;y=Math.random()*30+35;}
+  else if(/outside the box|outside box/.test(t)){x=73;y=Math.random()*30+35;}
+  else if(/corner/.test(t)){x=97;y=/left/.test(t)?15:85;}
+  else if(/attacking half/.test(t)){x=65;y=50;}
+  else if(/defensive half/.test(t)){x=35;y=50;}
+  else if(/own half/.test(t)){x=25;y=50;}
+  return{x,y};
+}
+
+// ── 繪製足球場雷達 SVG ──
+function buildPitchSVG(plays, hCode, aCode){
+  const W=340, H=210;
+  // 取最近 8 筆評論的位置
+  const pts = plays.slice(0,8).map((p,i)=>{
+    const isHome = p.team===en(hCode)||p.team===hCode;
+    const pos = parseFieldPos(p.text);
+    // 客隊進攻方向相反
+    if(!isHome) pos.x = 100-pos.x;
+    return {...pos, i, isHome, min:p.min||'', text:(p.text||'').substring(0,80)};
+  });
+  if(!pts.length) pts.push({x:50,y:50,i:0,isHome:true,min:'',text:'比賽進行中'});
+  const last = pts[0];
+  const toSvgX = x => x/100*(W-40)+20;
+  const toSvgY = y => y/100*(H-30)+15;
+  const lx=toSvgX(last.x), ly=toSvgY(last.y);
+  const ballColor=last.isHome?'#1a73e8':'#ff4d4d';
+
+  const trail = pts.slice(1).map(p=>{
+    const px=toSvgX(p.x), py=toSvgY(p.y);
+    const op=(0.5-(p.i-1)*0.06).toFixed(2);
+    return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(3.5-p.i*0.3).toFixed(1)}" fill="rgba(255,255,255,${op})"/>
+    <line x1="${px.toFixed(1)}" y1="${py.toFixed(1)}" x2="${toSvgX(pts[Math.max(0,p.i-1)].x).toFixed(1)}" y2="${toSvgY(pts[Math.max(0,p.i-1)].y).toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="3,3"/>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;border-radius:10px;display:block">
+    <!-- 草皮 -->
+    <defs>
+      <linearGradient id="pitch-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2d8a22"/>
+        <stop offset="50%" stop-color="#2d7a1f"/>
+        <stop offset="100%" stop-color="#2d8a22"/>
+      </linearGradient>
+    </defs>
+    <rect width="${W}" height="${H}" fill="url(#pitch-grad)" rx="10"/>
+    <!-- 條紋 -->
+    ${Array.from({length:8},(_,i)=>`<rect x="${20+i*(W-40)/8}" y="15" width="${(W-40)/16}" height="${H-30}" fill="rgba(0,0,0,0.04)"/>`).join('')}
+    <!-- 外框 -->
+    <rect x="15" y="10" width="${W-30}" height="${H-20}" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.5" rx="2"/>
+    <!-- 中線 -->
+    <line x1="${W/2}" y1="10" x2="${W/2}" y2="${H-10}" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+    <!-- 中圈 -->
+    <circle cx="${W/2}" cy="${H/2}" r="32" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+    <circle cx="${W/2}" cy="${H/2}" r="2.5" fill="rgba(255,255,255,0.6)"/>
+    <!-- 左禁區（主隊守）-->
+    <rect x="15" y="${H/2-38}" width="52" height="76" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+    <rect x="15" y="${H/2-20}" width="24" height="40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+    <circle cx="67" cy="${H/2}" r="2" fill="rgba(255,255,255,0.5)"/>
+    <!-- 右禁區（客隊守）-->
+    <rect x="${W-67}" y="${H/2-38}" width="52" height="76" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+    <rect x="${W-39}" y="${H/2-20}" width="24" height="40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
+    <circle cx="${W-67}" cy="${H/2}" r="2" fill="rgba(255,255,255,0.5)"/>
+    <!-- 球門 -->
+    <rect x="5" y="${H/2-14}" width="10" height="28" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+    <rect x="${W-15}" y="${H/2-14}" width="10" height="28" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+    <!-- 隊名標籤 -->
+    <text x="40" y="${H-3}" font-size="9.5" fill="rgba(255,255,255,0.75)" text-anchor="middle" font-family="sans-serif" font-weight="bold">${zh(hCode)} ▶</text>
+    <text x="${W-40}" y="${H-3}" font-size="9.5" fill="rgba(255,255,255,0.75)" text-anchor="middle" font-family="sans-serif" font-weight="bold">◀ ${zh(aCode)}</text>
+    <!-- 軌跡 -->
+    ${trail}
+    <!-- 球 -->
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="9" fill="${ballColor}" opacity="0.85" filter="url(#ball-shadow)"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="9" fill="none" stroke="white" stroke-width="1.8"/>
+    <text x="${lx.toFixed(1)}" y="${(ly+3.5).toFixed(1)}" font-size="9" text-anchor="middle" fill="white" font-family="serif">⚽</text>
+    <!-- 最後動作時間 -->
+    ${last.min?`<rect x="${lx-14}" y="${ly-20}" width="28" height="12" rx="6" fill="rgba(0,0,0,0.65)"/><text x="${lx}" y="${ly-11}" font-size="9" text-anchor="middle" fill="${ballColor}" font-weight="bold" font-family="sans-serif">${last.min}'</text>`:''}
+  </svg>`;
+}
+
+// ========== FILTER STATE ==========
+let activeRound='all',activeGrp=null;
+let activeLive=false,activeFt=false,activeSoon=false;
+
+function getMatchStatus(kickUTC){
+  const now=Date.now(),kick=new Date(kickUTC).getTime(),min=(now-kick)/60000;
+  if(min<-30)return'soon';
+  if(min<0)return'starting';
+  if(min<115)return'live';
+  return'ft';
+}
+
+function toggleFilt(type){
+  if(type==='live'){activeLive=!activeLive;document.getElementById('f-live').classList.toggle('live-on',activeLive);document.getElementById('f-live').classList.toggle('on',activeLive)}
+  if(type==='ft'){activeFt=!activeFt;document.getElementById('f-ft').classList.toggle('on',activeFt)}
+  if(type==='soon'){activeSoon=!activeSoon;document.getElementById('f-soon').classList.toggle('on',activeSoon)}
+  renderMatches();
+}
+
+function setRound(r){
+  activeRound=r;activeGrp=null;
+  ['all','r32','gs3','gs2','gs1'].forEach(x=>document.getElementById('f-'+x).classList.toggle('on',x===r));
+  'ABCDEFGHIJKL'.split('').forEach(x=>{const el=document.getElementById('f-'+x);if(el)el.classList.remove('on')});
+  renderMatches();
+}
+
+function setGrp(g){
+  if(activeGrp===g){activeGrp=null;document.getElementById('f-'+g).classList.remove('on')}
+  else{
+    'ABCDEFGHIJKL'.split('').forEach(x=>{const el=document.getElementById('f-'+x);if(el)el.classList.remove('on')});
+    activeGrp=g;document.getElementById('f-'+g).classList.add('on');
+    activeRound='all';
+    ['all','r32','gs3','gs2','gs1'].forEach(x=>document.getElementById('f-'+x).classList.remove('on'));
+    document.getElementById('f-all').classList.add('on');
+  }
+  renderMatches();
+}
+
+// ========== BUILD ALL MATCHES ==========
+function buildAll(){
+  const gsArr=GM.map(m=>({type:'gs',id:m[8],h:m[0],a:m[1],hs:m[2],as:m[3],date:m[4],grp:m[5],rnd:m[6],note:m[7],status:'ft',kickUTC:null,venue:null}));
+  const r32Arr=R32.map(m=>({type:'r32',id:m.id,h:m.h,a:m.a,hs:m.hs,as:m.as,date:m.date,grp:null,rnd:null,note:m.note,kickUTC:m.kickUTC,venue:m.venue,status:getMatchStatus(m.kickUTC)}));
+  return[...r32Arr,...gsArr];
+}
+
+function applyFilters(matches,q){
+  const ql=q.toLowerCase().trim();
+  return matches.filter(m=>{
+    if(activeRound==='r32'&&m.type!=='r32')return false;
+    if(activeRound==='gs1'&&!(m.type==='gs'&&m.rnd==='1'))return false;
+    if(activeRound==='gs2'&&!(m.type==='gs'&&m.rnd==='2'))return false;
+    if(activeRound==='gs3'&&!(m.type==='gs'&&m.rnd==='3'))return false;
+    if(activeGrp&&m.grp!==activeGrp)return false;
+    const st=m.status;
+    if(activeLive&&st!=='live'&&st!=='starting')return false;
+    if(activeFt&&st!=='ft')return false;
+    if(activeSoon&&st!=='soon'&&st!=='starting')return false;
+    if(ql){
+      const srch=[zh(m.h),zh(m.a),en(m.h),en(m.a),(m.note||''),(m.grp||'')+'組'].join(' ').toLowerCase();
+      if(!srch.includes(ql))return false;
+    }
+    return true;
+  });
+}
+
+function renderCard(m){
+  const hcc=T[m.h]?T[m.h][0]:'',acc=T[m.a]?T[m.a][0]:'';
+  const st=m.status;
+  const hasScore=(m.hs!==null&&m.as!==null);
+  let statusHtml,scoreHtml,cardCls='mcard done-card';
+  if(st==='live'||st==='starting'){
+    cardCls='mcard live-card';
+    statusHtml=`<span class="mcard-status status-live">🔴 進行中</span>`;
+    scoreHtml=hasScore?`<div class="mcard-score live-score">${m.hs}–${m.as}</div>`:`<div class="mcard-score preview">VS</div>`;
+  }else if(st==='ft'){
+    statusHtml=`<span class="mcard-status status-ft">✅ 完場</span>`;
+    scoreHtml=hasScore?`<div class="mcard-score confirmed">${m.hs}–${m.as}</div>`:`<div class="mcard-score preview">–</div>`;
+  }else{
+    cardCls='mcard';
+    statusHtml=`<span class="mcard-status status-soon">${m.date}</span>`;
+    scoreHtml=`<div class="mcard-score preview">VS</div>`;
+  }
+  const grpLabel=m.type==='r32'?'32強':(m.grp?`${m.grp}組 R${m.rnd}`:'');
+  return`<div class="${cardCls}" onclick="openMatch('${m.id}')">
+    <div class="mcard-meta"><span class="mcard-grp">${grpLabel}${m.date?' · '+m.date:''}</span>${statusHtml}</div>
+    <div class="mcard-teams">
+      <div class="mcard-team">${tf(m.h,'fi')}<div class="mcard-tname">${zh(m.h)}</div></div>
+      ${scoreHtml}
+      <div class="mcard-team">${tf(m.a,'fi')}<div class="mcard-tname">${zh(m.a)}</div></div>
+    </div>
+    ${m.note?`<div class="mcard-note">${m.note}</div>`:''}
+    ${m.venue?`<div class="mcard-venue">${m.venue}</div>`:''}
+  </div>`;
+}
+
+function renderMatches(){
+  const q=document.getElementById('q').value||'';
+  const filtered=applyFilters(buildAll(),q);
+  document.getElementById('result-count').textContent=`顯示 ${filtered.length} / 88 場`;
+
+  const r32live=[],r32soon=[],r32done=[];
+  const gs3=[],gs2=[],gs1=[];
+  filtered.forEach(m=>{
+    if(m.type==='r32'){
+      const s=m.status;
+      if(s==='live'||s==='starting')r32live.push(m);
+      else if(s==='ft')r32done.push(m);
+      else r32soon.push(m);
+    }else{
+      if(m.rnd==='3')gs3.push(m);
+      else if(m.rnd==='2')gs2.push(m);
+      else gs1.push(m);
+    }
+  });
+
+  let html='';
+  if(r32live.length){
+    html+=`<div class="round-section"><div class="round-header"><h3>🔴 進行中 – 32強</h3><span class="round-badge badge-r32">${r32live.length}場</span></div>
+    <div class="matches-grid">${r32live.map(renderCard).join('')}</div></div>`;
+  }
+  if(r32soon.length){
+    const byDate={};
+    r32soon.forEach(m=>{(byDate[m.date]||(byDate[m.date]=[])).push(m)});
+    html+=`<div class="round-section"><div class="round-header"><h3>📅 即將 – 32強</h3><span class="round-badge badge-r32">${r32soon.length}場</span></div>`;
+    Object.entries(byDate).forEach(([d,ms])=>{
+      html+=`<div class="date-title">${d} <span>${ms.length}場</span></div><div class="matches-grid">${ms.map(renderCard).join('')}</div>`;
+    });
+    html+=`</div>`;
+  }
+  if(r32done.length){
+    html+=`<div class="round-section"><div class="round-header"><h3>✅ 完場 – 32強</h3><span class="round-badge badge-r32">${r32done.length}場</span></div>
+    <div class="matches-grid">${r32done.map(renderCard).join('')}</div></div>`;
+  }
+  if(gs3.length){
+    html+=`<div class="round-section"><div class="round-header"><h3>小組賽 第3輪</h3><span class="round-badge badge-gs3">${gs3.length}場</span></div>
+    <div class="matches-grid">${gs3.map(renderCard).join('')}</div></div>`;
+  }
+  if(gs2.length){
+    html+=`<div class="round-section"><div class="round-header"><h3>小組賽 第2輪</h3><span class="round-badge badge-gs2">${gs2.length}場</span></div>
+    <div class="matches-grid">${gs2.map(renderCard).join('')}</div></div>`;
+  }
+  if(gs1.length){
+    html+=`<div class="round-section"><div class="round-header"><h3>小組賽 第1輪</h3><span class="round-badge badge-gs1">${gs1.length}場</span></div>
+    <div class="matches-grid">${gs1.map(renderCard).join('')}</div></div>`;
+  }
+  if(!html){
+    html=`<div class="empty-state"><div class="icon">🔍</div><p>沒有符合的比賽</p><p style="font-size:12px;margin-top:6px">試試搜尋中文或英文球隊名</p></div>`;
+  }
+  document.getElementById('match-results').innerHTML=html;
+}
+
+// ========== MODAL ==========
+function openMatch(id){
+  const all=buildAll();
+  const m=all.find(x=>x.id===id);
+  if(!m)return;
+
+  // ── 合併靜態 MD + ESPN LIVE 快取 ──
+  const md=MD[id]||{};
+  const lv=LIVE[id]||{};
+  // LIVE 數據優先覆蓋 MD
+  const hasScore=(lv.hs!=null?lv.hs:m.hs)!==null && (lv.as!=null?lv.as:m.as)!==null;
+  const scoreH = lv.hs!=null ? lv.hs : m.hs;
+  const scoreA = lv.as!=null ? lv.as : m.as;
+  const isLive=(m.status==='live'||m.status==='starting'||lv.state==='in');
+  const isFT=(m.status==='ft'||lv.state==='post');
+  const minute=lv.minute||'';
+  const period=lv.period||'';
+
+  // 評論來源：LIVE 優先
+  const commentary = lv.commentary?.length ? lv.commentary : (md.commentary||[]);
+  // 事件來源：LIVE 優先
+  const events = lv.events?.length ? lv.events : (md.events||[]);
+
+  const hcc=T[m.h]?T[m.h][0]:'', acc=T[m.a]?T[m.a][0]:'';
+
+  // ── 狀態標籤 ──
+  const statusTag = isLive
+    ? `<div style="font-size:11px;font-weight:700;color:var(--red);background:rgba(255,77,77,.15);border-radius:8px;padding:3px 10px;margin-bottom:6px;animation:pulse 1s infinite">🔴 ${minute?minute+' ':''}${period||'即時直播'}</div>`
+    : isFT
+    ? `<div style="font-size:11px;color:var(--green);margin-bottom:6px">✅ 完場</div>`
+    : `<div style="font-size:11px;color:var(--text2);margin-bottom:6px">📅 ${m.date}</div>`;
+
+  document.getElementById('modal-teams').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+      ${statusTag}
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="modal-team">${fi(hcc,'fi-lg')}<div class="modal-tname">${zh(m.h)}</div></div>
+        <div class="modal-score">${hasScore?scoreH+'–'+scoreA:'VS'}</div>
+        <div class="modal-team">${fi(acc,'fi-lg')}<div class="modal-tname">${zh(m.a)}</div></div>
+      </div>
+    </div>`;
+
+  // 無詳細資料時顯示基礎資訊（不提前返回，改為生成簡單面板）
+  if(!Object.keys(md).length && !Object.keys(lv).length){
+    document.getElementById('modal-tabs').innerHTML='';
+    const grpLabel=m.type==='r32'?'32強 淘汰賽':`${m.grp}組 第${m.rnd}輪`;
+    const predData=PRED&&PRED[id];
+    const predHtml=predData?`
+      <div style="background:var(--dark3);border-radius:10px;padding:14px;margin-top:10px">
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:10px;text-transform:uppercase">🔮 賽事預測</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:12px">
+          ${[{l:zh(m.h)+' 勝',v:predData.h,c:'var(--blue)'},{l:'平局',v:predData.d,c:'var(--gold)'},{l:zh(m.a)+' 勝',v:predData.a,c:'var(--red)'}]
+            .map(p=>`<div style="background:var(--dark4);border-radius:8px;padding:10px">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:4px">${p.l}</div>
+              <div style="font-size:20px;font-weight:800;color:${p.c}">${p.v}%</div>
+            </div>`).join('')}
+        </div>
+        ${predData.note?`<div style="font-size:12px;color:var(--text2);line-height:1.7">${predData.note}</div>`:''}
+      </div>` : '';
+    document.getElementById('modal-body').innerHTML=`
+      <div style="padding:4px">
+        <div style="background:var(--dark3);border-radius:10px;padding:14px;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:10px;text-transform:uppercase">比賽資訊</div>
+          ${[['賽制',grpLabel],['日期',m.date||'TBD'],['場館',m.venue||'–'],['備註',m.note||'–']]
+            .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px">
+              <span style="color:var(--text2)">${k}</span>
+              <span style="font-weight:600;color:${k==='備註'?'var(--gold)':'var(--text)'}">${v}</span>
+            </div>`).join('')}
+        </div>
+        ${predHtml}
+        ${!hasScore?`<div style="background:var(--dark3);border-radius:10px;padding:14px;text-align:center;color:var(--text2);font-size:13px">
+          📅 比賽尚未開始，開賽後即時更新數據
+        </div>`:`<div style="background:var(--dark3);border-radius:10px;padding:14px;text-align:center;color:var(--text2);font-size:12px">
+          📊 詳細統計數據正在整理中
+        </div>`}
+      </div>`;
+    document.getElementById('modal-bg').classList.add('open');return;
+  }
+
+  // ── Tabs ──
+  const tabLabels=['⚽ 賽事紀錄','🟢 即時雷達','📊 完整統計','⚡ xG分析','ℹ️ 賽事資訊'];
+  document.getElementById('modal-tabs').innerHTML=tabLabels.map((t,i)=>
+    `<button class="mtab ${i===0?'active':''}" onclick="switchMTab(${i})">${t}</button>`).join('');
+
+  // ── 工具函數 ──
+  function eventIcon(type){
+    return type==='goal'?'⚽':type==='yellow'?'🟨':type==='red'?'🟥':type==='sub'?'🔄':'📌';
+  }
+  function statRow(row,hClr,aClr){
+    const tot=(row.total)||Math.max(row.hv+row.av,0.001);
+    const hPct=Math.min(100,row.hv/tot*100);
+    const aPct=Math.min(100,row.av/tot*100);
+    const hDisp=(row.h||'').replace('\n','<br><span style="font-size:10px;opacity:.7">');
+    const aDisp=(row.a||'').replace('\n','<br><span style="font-size:10px;opacity:.7">');
+    return`<div style="display:grid;grid-template-columns:72px 1fr 72px;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <div style="text-align:right;font-size:13px;font-weight:700;color:${hClr||'var(--blue)'};line-height:1.3">${hDisp}${(row.h||'').includes('\n')?'</span>':''}</div>
+      <div>
+        <div style="font-size:10px;text-align:center;color:var(--text2);margin-bottom:3px">${row.name}</div>
+        <div style="height:6px;background:var(--dark3);border-radius:3px;overflow:hidden;display:flex">
+          <div style="width:${hPct}%;background:${hClr||'var(--blue)'};border-radius:3px 0 0 3px"></div>
+          <div style="width:${aPct}%;background:${aClr||'var(--red)'};margin-left:auto;border-radius:0 3px 3px 0"></div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:${aClr||'var(--red)'};line-height:1.3">${aDisp}${(row.a||'').includes('\n')?'</span>':''}</div>
+    </div>`;
+  }
+
+  // ════════════════════════════════════
+  // TAB 0 — ⚽ 賽事紀錄
+  // ════════════════════════════════════
+  const eventsHtml = events.length
+    ? events.map(ev=>{
+        const isH=(ev.team===m.h);
+        const detail=ev.assist?` <span class="goal-assist">(${ev.assist})</span>`
+          :ev.detail?` <span class="goal-assist">${ev.detail}</span>`:'';
+        return`<div class="goal-item" style="${ev.type==='goal'?'border-left:3px solid var(--gold);padding-left:10px;background:rgba(245,200,66,.04)':''}">
+          ${isH
+            ?`${tf(ev.team,'fi-sm')} <span style="flex:1;font-weight:${ev.type==='goal'?700:400}">${eventIcon(ev.type)} ${ev.player}${detail}</span><span class="goal-min">${ev.min}'</span>`
+            :`<span class="goal-min">${ev.min}'</span><span style="flex:1;font-weight:${ev.type==='goal'?700:400}">${eventIcon(ev.type)} ${ev.player}${detail}</span>${tf(ev.team,'fi-sm')}`}
+        </div>`;
+      }).join('')
+    : `<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px">尚無賽事紀錄</div>`;
+
+  const commSrc = lv.commentary?.length ? 'ESPN' : 'Flashscore';
+  const commHtml = commentary.length
+    ? `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📝 即時評論（資料來源 ${commSrc}）</div>
+        ${commentary.map(c=>{
+          const txt=cnComm(c.text||'');
+          const isGoal=txt.includes('⚽') || txt.includes('進球');
+          const isCard=txt.includes('🟨') || txt.includes('🟥');
+          const bg=isGoal?'rgba(245,200,66,.06)':isCard?'rgba(255,77,77,.04)':'';
+          return`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px${bg?`;background:${bg};border-radius:6px;padding:8px;margin:3px 0`:''}">
+            <span style="color:${isGoal?'var(--gold)':isCard?'var(--red)':'var(--text2)'};font-weight:700;width:28px;flex-shrink:0">${c.min?c.min+"'":'–'}</span>
+            <span style="color:${isGoal?'var(--text)':'var(--text2)'};line-height:1.6;font-weight:${isGoal?600:400}">${txt}</span>
+          </div>`;
+        }).join('')}
+      </div>`
+    : '';
+  const tab0Html = eventsHtml + commHtml;
+
+  // ════════════════════════════════════
+  // TAB 1 — 🟢 即時雷達 / 重播
+  // ════════════════════════════════════
+  const allPlays = commentary; // 最新在前
+  // 初始化 RADAR_STATE: live→最新(step=0); 完場→從最早開始(step=最後)
+  const initStep = (isFT && allPlays.length>1) ? allPlays.length-1 : 0;
+  RADAR_STATE[id] = {step:initStep, plays:allPlays, hCode:m.h, aCode:m.a};
+  const initSlice = allPlays.slice(initStep, initStep+8);
+  const initPlay  = allPlays[initStep]||{};
+  const pitchSvg  = buildPitchSVG(initSlice, m.h, m.a);
+
+  // 迷你統計（ESPN 取到的）
+  const miniStats = lv.stats||[];
+  const miniStatsHtml = miniStats.length ? `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px">
+      ${miniStats.map(s=>`
+        <div style="background:var(--dark3);border-radius:7px;padding:7px;text-align:center">
+          <div style="font-size:10px;color:var(--text2);margin-bottom:3px">${s.name}</div>
+          <div style="display:flex;justify-content:space-around;align-items:center;font-size:13px;font-weight:700">
+            <span style="color:var(--blue)">${s.h}</span>
+            <span style="color:var(--border);font-size:9px">vs</span>
+            <span style="color:var(--red)">${s.a}</span>
+          </div>
+        </div>`).join('')}
+    </div>` : '';
+
+  // 重播控制
+  const btnStyle='padding:5px 11px;background:var(--dark3);border:1px solid var(--border);border-radius:16px;color:var(--text);cursor:pointer;font-size:11px';
+  const replayHtml = (allPlays.length>1) ? `
+    <div style="display:flex;align-items:center;gap:6px;margin-top:12px;justify-content:center;flex-wrap:wrap">
+      <button onclick="radarNav('${id}',9999)" title="回到開場" style="${btnStyle};color:var(--text2)">⏮</button>
+      <button onclick="radarNav('${id}',5)" title="後退5步" style="${btnStyle};color:var(--text2)">«</button>
+      <button onclick="radarNav('${id}',1)" id="radar-prev-${id}" style="${btnStyle}"
+        ${initStep>=allPlays.length-1?'disabled':''}>‹ 上一步</button>
+      <button onclick="radarAutoPlay('${id}')" id="radar-play-${id}"
+        style="${btnStyle};background:rgba(26,115,232,.2);border-color:var(--blue);color:var(--blue);font-weight:700;padding:5px 16px">
+        ▶ 播放</button>
+      <button onclick="radarNav('${id}',-1)" id="radar-next-${id}" style="${btnStyle}"
+        ${initStep<=0?'disabled':''}>下一步 ›</button>
+      <button onclick="radarNav('${id}',-9999)" title="跳至最新" style="${btnStyle};color:var(--text2)">⏭</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:6px">
+      <span id="radar-step-${id}" style="font-size:11px;color:var(--gold);font-weight:700">
+        ${allPlays.length-initStep} / ${allPlays.length}
+      </span>
+      <span style="font-size:10px;color:var(--text2);opacity:.7">
+        ${isFT?'⏪ 完場重播':'🔴 即時'} · 位置由評論文字推算
+      </span>
+    </div>` : `
+    <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--text2)">
+      ${isLive?'<span style="color:var(--red)">🔴</span> 即時雷達 · 每30秒自動更新':'暫無評論資料'}
+    </div>`;
+
+  const tab1Html = `
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:5px;opacity:.75">
+        <span>← ${zh(m.h)} 主攻</span>
+        <span style="color:${isLive?'var(--red)':'var(--gold)'}">${isLive?'🔴 LIVE':isFT?'✅ 完場重播':''}</span>
+        <span>${zh(m.a)} 主攻 →</span>
+      </div>
+      <div id="radar-pitch-${id}">${pitchSvg}</div>
+      ${replayHtml}
+      <div id="radar-info-${id}" style="margin-top:10px;padding:10px;background:var(--dark3);border-radius:8px;min-height:56px">
+        <div style="font-size:10px;color:var(--text2);margin-bottom:4px">
+          第 ${allPlays.length-initStep} / ${allPlays.length} 個動作
+        </div>
+        <div style="font-size:12px;color:var(--text);line-height:1.6">${cnComm(initPlay.text)||'比賽評論載入中...'}</div>
+        ${initPlay.min?`<div style="font-size:10px;color:var(--gold);margin-top:4px;font-weight:700">${initPlay.min}'</div>`:''}
+      </div>
+      ${miniStatsHtml}
+    </div>`;
+
+  // ════════════════════════════════════
+  // TAB 2 — 📊 完整統計
+  // ════════════════════════════════════
+  let tab2Html=`<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;padding:8px 0 12px;border-bottom:2px solid var(--border);margin-bottom:4px">
+    <span style="color:var(--blue)">${tf(m.h,'fi-sm')} ${zh(m.h)}</span>
+    <span style="color:var(--text2);font-size:10px">統計（資料來源 ESPN）</span>
+    <span style="color:var(--red)">${zh(m.a)} ${tf(m.a,'fi-sm')}</span>
+  </div>`;
+
+  // 優先使用 LIVE ESPN 統計
+  if(lv.espnStats){
+    lv.espnStats.forEach(section=>{
+      tab2Html+=`<div style="margin-top:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase">${section.label}</div>
+        ${section.rows.map(r=>statRow(r)).join('')}
+      </div>`;
+    });
+  } else if(md.fullStats){
+    Object.values(md.fullStats).forEach(section=>{
+      tab2Html+=`<div style="margin-top:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase">${section.label}</div>
+        ${section.rows.map(r=>statRow(r)).join('')}
+      </div>`;
+    });
+  } else {
+    tab2Html+='<div style="padding:20px;text-align:center;color:var(--text2)">統計資料同步中...</div>';
+  }
+
+  // ════════════════════════════════════
+  // TAB 3 — ⚡ xG 分析
+  // ════════════════════════════════════
+  const xg=md.xg||{h:0,a:0};
+  const xgTot=Math.max(xg.h+xg.a,0.001);
+  const tab3Html=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:16px;background:var(--dark3);border-radius:10px">
+      <div style="text-align:center;flex:1">
+        ${tf(m.h,'fi-lg')}
+        <div style="font-size:32px;font-weight:900;color:var(--blue);margin:6px 0">${xg.h.toFixed(2)}</div>
+        <div style="font-size:11px;color:var(--text2)">${zh(m.h)}</div>
+      </div>
+      <div style="flex:2">
+        <div style="font-size:11px;text-align:center;color:var(--text2);margin-bottom:6px">xG 期望進球值</div>
+        <div style="height:18px;background:var(--dark4);border-radius:9px;overflow:hidden;display:flex">
+          <div style="width:${xg.h/xgTot*100}%;background:var(--blue);border-radius:9px 0 0 9px"></div>
+          <div style="width:${xg.a/xgTot*100}%;background:var(--red);border-radius:0 9px 9px 0"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-top:4px">
+          <span>${(xg.h/xgTot*100).toFixed(0)}%</span><span>xG佔比</span><span>${(xg.a/xgTot*100).toFixed(0)}%</span>
+        </div>
+      </div>
+      <div style="text-align:center;flex:1">
+        ${tf(m.a,'fi-lg')}
+        <div style="font-size:32px;font-weight:900;color:var(--red);margin:6px 0">${xg.a.toFixed(2)}</div>
+        <div style="font-size:11px;color:var(--text2)">${zh(m.a)}</div>
+      </div>
+    </div>
+    <div style="background:var(--dark3);border-radius:10px;padding:14px;font-size:12px;color:var(--text2);line-height:1.8">
+      <div style="font-weight:700;color:var(--text);margin-bottom:6px">📖 xG 指標說明</div>
+      <p>• <strong>xG（Expected Goals）</strong>：每次射門的進球概率加總，反映創造機會的質量</p>
+      <p>• <strong>xGOT</strong>：僅計算射正球的期望值</p>
+      <p>• <strong>xA（Expected Assists）</strong>：傳球製造射門的期望貢獻值</p>
+      <p style="margin-top:8px;color:var(--gold)">⚡ ${zh(m.h)} xG ${xg.h.toFixed(2)} ${xg.h>xg.a?'> 本場機會質量佔優':'vs'} ${zh(m.a)} xG ${xg.a.toFixed(2)}</p>
+    </div>`;
+
+  // ════════════════════════════════════
+  // TAB 4 — ℹ️ 賽事資訊
+  // ════════════════════════════════════
+  const mi=md.matchInfo||{};
+  const grpLabel=m.type==='r32'?'32強 淘汰賽':`${m.grp}組 第${m.rnd}輪`;
+  const refereeName=lv.referee||mi.referee||'–';
+  const venueName=lv.venue||mi.venue||m.venue||'–';
+  const tab4Html=`
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:var(--dark3);border-radius:10px;padding:14px">
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:10px;text-transform:uppercase">比賽資訊</div>
+        ${[['賽制',grpLabel],['日期',m.date||''],['場館',venueName],
+           ['城市',mi.city||lv.city||''],['容量',mi.capacity||'–'],['主裁判',refereeName]]
+          .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px">
+            <span style="color:var(--text2)">${k}</span><span style="font-weight:600">${v}</span>
+          </div>`).join('')}
+      </div>
+      ${mi.odds?`<div style="background:var(--dark3);border-radius:10px;padding:14px">
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:10px;text-transform:uppercase">賠率（來源 ESPN）</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+          <div style="background:var(--dark4);border-radius:8px;padding:10px">
+            ${tf(m.h,'fi-sm')}<div style="font-size:11px;color:var(--text2);margin-top:4px">${zh(m.h)} 勝</div>
+            <div style="font-size:20px;font-weight:800;color:var(--blue)">${mi.odds.h}</div>
+          </div>
+          <div style="background:var(--dark4);border-radius:8px;padding:10px">
+            <div style="font-size:22px">⚖️</div>
+            <div style="font-size:11px;color:var(--text2)">平局</div>
+            <div style="font-size:20px;font-weight:800;color:var(--gold)">${mi.odds.d}</div>
+          </div>
+          <div style="background:var(--dark4);border-radius:8px;padding:10px">
+            ${tf(m.a,'fi-sm')}<div style="font-size:11px;color:var(--text2);margin-top:4px">${zh(m.a)} 勝</div>
+            <div style="font-size:20px;font-weight:800;color:var(--red)">${mi.odds.a}</div>
+          </div>
+        </div>
+      </div>`:''}
+      ${md.analysis?`<div style="background:var(--dark3);border-radius:10px;padding:14px">
+        <div style="font-size:11px;color:var(--text2);font-weight:700;margin-bottom:8px;text-transform:uppercase">🧠 戰術分析</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.8">${md.analysis}</div>
+      </div>`:''}
+      ${lv.fetchedAt?`<div style="font-size:10px;color:var(--text2);text-align:center;margin-top:4px;opacity:.6">ESPN 資料更新：${new Date(lv.fetchedAt).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</div>`:''}
+    </div>`;
+
+  document.getElementById('modal-body').innerHTML=`
+    <div class="modal-panel active" id="mp0">${tab0Html}</div>
+    <div class="modal-panel" id="mp1">${tab1Html}</div>
+    <div class="modal-panel" id="mp2">${tab2Html}</div>
+    <div class="modal-panel" id="mp3">${tab3Html}</div>
+    <div class="modal-panel" id="mp4">${tab4Html}</div>`;
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function switchMTab(i){
+  document.querySelectorAll('.mtab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.modal-panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+function closeMatchModal(){document.getElementById('modal-bg').classList.remove('open')}
+function closeModal(e){if(e.target===document.getElementById('modal-bg'))closeMatchModal()}
+
+// ========== TICKER ==========
+function buildTicker(){
+  const items=[];
+  R32.filter(m=>getMatchStatus(m.kickUTC)==='ft'&&m.hs!==null).forEach(m=>{
+    const hcc=T[m.h]?T[m.h][0]:'',acc=T[m.a]?T[m.a][0]:'';
+    items.push(`<span class="tick-item">${fi(hcc,'fi-sm')} ${zh(m.h)}<span class="tick-score">${m.hs}–${m.as}</span>${fi(acc,'fi-sm')} ${zh(m.a)} <span style="font-size:10px;color:var(--green)">✅32強</span></span>`);
+  });
+  R32.filter(m=>{const s=getMatchStatus(m.kickUTC);return s==='live'||s==='starting'}).forEach(m=>{
+    const hcc=T[m.h]?T[m.h][0]:'',acc=T[m.a]?T[m.a][0]:'';
+    items.push(`<span class="tick-item"><span class="tick-live">LIVE</span> ${fi(hcc,'fi-sm')} ${zh(m.h)} <span class="tick-score">VS</span> ${fi(acc,'fi-sm')} ${zh(m.a)}</span>`);
+  });
+  [['ECU','2–1','GER','⚡大爆冷'],['TUR','3–2','USA','⚡爆冷'],['SEN','5–0','IRQ','📊大勝'],['GER','7–1','CUW','📊大勝'],['NED','5–1','SWE','📊大勝'],['CAN','6–2','QAT','📊大勝'],['MAR','4–2','HTI','📊進攻'],['NZL','1–5','BEL','📊比利時']].forEach(([h,s,a,tag])=>{
+    items.push(`<span class="tick-item">${tf(h,'fi-sm')} ${zh(h)}<span class="tick-score">${s}</span>${tf(a,'fi-sm')} ${zh(a)} <span style="font-size:10px;margin-left:2px">${tag}</span></span>`);
+  });
+  if(!items.length)return;
+  const c=items.join('');
+  document.getElementById('ticker-inner').innerHTML=c+c;
+}
+
+// ========== PREDICT TAB ==========
+function buildPredictions(){
+  // Odds chips
+  const odds=[['FRA','法國',22],['BRA','巴西',18],['ARG','阿根廷',16],['ESP','西班牙',14],['ENG','英格蘭',10],['GER','德國',8]];
+  document.getElementById('odds-row').innerHTML=odds.map(([c,_,p])=>`<div class="odds-chip">
+    <div class="odds-team">${tf(c,'fi-sm')} ${zh(c)}</div>
+    <div class="odds-pct">${p}%</div>
+  </div>`).join('')+`<div class="odds-chip"><div class="odds-team">其他</div><div class="odds-pct">12%</div></div>`;
+
+  const preds=[
+    {h:'BRA',a:'JPN',ps:'2-0',conf:'72%',kickUTC:'2026-06-29T17:00:00Z',xgh:2.2,xga:0.9,pph:68,analysis:'巴西小組賽穩健，Vinicius個人能力突出。日本善於反擊但面對巴西防線壓力大。'},
+    {h:'GER',a:'PRY',ps:'2-1',conf:'65%',kickUTC:'2026-06-29T20:30:00Z',xgh:1.8,xga:0.7,pph:62,analysis:'德國雖被爆冷但淘汰賽心態不同，巴拉圭防守穩健，預計靠個人能力決勝。'},
+    {h:'NED',a:'MAR',ps:'1-1',conf:'52%',kickUTC:'2026-06-30T01:00:00Z',xgh:1.5,xga:1.2,pph:54,analysis:'摩洛哥延續上屆8強氣勢，荷蘭進攻強但防守有漏洞。可能拖入延長賽。'},
+    {h:'CIV',a:'NOR',ps:'1-2',conf:'58%',kickUTC:'2026-06-30T17:00:00Z',xgh:1.1,xga:1.9,pph:44,analysis:'哈蘭德正處顛峰，挪威長傳衝吊打法對象牙海岸防線威脅極大。'},
+    {h:'FRA',a:'SWE',ps:'2-0',conf:'76%',kickUTC:'2026-06-30T21:00:00Z',xgh:2.4,xga:0.8,pph:71,analysis:'法國姆巴佩+格列茲曼雙核，瑞典伊薩克雖強但面對法國防線機會有限。'},
+    {h:'MEX',a:'ECU',ps:'2-1',conf:'60%',kickUTC:'2026-07-01T01:00:00Z',xgh:1.7,xga:1.3,pph:57,analysis:'厄瓜多剛爆冷德國，士氣旺盛。墨西哥本土作戰，兩隊實力接近，預計激烈。'},
+    {h:'ENG',a:'COD',ps:'3-0',conf:'79%',kickUTC:'2026-07-01T16:00:00Z',xgh:2.6,xga:0.5,pph:74,analysis:'凱恩、貝林厄姆、薩卡三叉戟對陣剛果防線佔絕對優勢，英格蘭有望輕取。'},
+    {h:'BEL',a:'SEN',ps:'2-1',conf:'63%',kickUTC:'2026-07-01T20:00:00Z',xgh:2.0,xga:1.1,pph:62,analysis:'盧卡庫小組3球，塞內加爾Diallo同樣高狀態，預計進球精彩的激烈對決。'},
+  ];
+  const grid=document.getElementById('pred-grid');
+  grid.innerHTML=preds.map(p=>{
+    const st=getMatchStatus(p.kickUTC);
+    const tag=st==='ft'?'✅完場':st==='live'?'🔴直播':'📅即將';
+    const tot=(p.xgh+p.xga)||1;
+    const hcc=T[p.h]?T[p.h][0]:'',acc=T[p.a]?T[p.a][0]:'';
+    return`<div class="pred-card">
+      <div class="pred-header"><span style="font-size:11px">${tag}</span><span class="pred-conf">信心 ${p.conf}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:6px;flex:1">${fi(hcc,'fi-sm')}<strong>${zh(p.h)}</strong></div>
+        <div style="font-size:20px;font-weight:900;color:var(--gold);min-width:50px;text-align:center">${p.ps}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end"><strong>${zh(p.a)}</strong>${fi(acc,'fi-sm')}</div>
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>xG ${p.xgh}</span><span>期望進球</span><span>${p.xga}</span></div>
+        <div style="height:6px;background:var(--dark3);border-radius:3px;overflow:hidden;display:flex">
+          <div style="width:${p.xgh/tot*100}%;background:var(--blue)"></div>
+          <div style="width:${p.xga/tot*100}%;background:var(--red)"></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">${p.analysis}</div>
+    </div>`;
+  }).join('');
+}
+
+// ========== STATS TAB ==========
+function buildStats(){
+  const scorers=[
+    {c:'GER',p:'Havertz',g:6},{c:'NOR',p:'Haaland',g:5},{c:'FRA',p:'Mbappé',g:5},
+    {c:'BRA',p:'Vinicius',g:4},{c:'ESP',p:'Yamal',g:4},{c:'EGY',p:'Salah',g:4},
+    {c:'BEL',p:'Lukaku',g:4},{c:'SWE',p:'Isak',g:4},{c:'ALG',p:'Mahrez',g:5},{c:'CAN',p:'David',g:4},
+  ];
+  document.getElementById('top-scorers').innerHTML=scorers.sort((a,b)=>b.g-a.g).map((s,i)=>`
+    <div class="stat-row"><div class="stat-rank">${i+1}</div>
+    <div class="stat-team">${tf(s.c,'fi-sm')} ${zh(s.c)} · ${s.p}</div>
+    <div class="stat-val">${s.g}⚽</div></div>`).join('');
+
+  const def=[{c:'ESP',ga:0},{c:'BRA',ga:0},{c:'COL',ga:1},{c:'ARG',ga:1},{c:'ENG',ga:2},{c:'FRA',ga:2}];
+  document.getElementById('best-def').innerHTML=def.map((s,i)=>`
+    <div class="stat-row"><div class="stat-rank">${i+1}</div>
+    <div class="stat-team">${tf(s.c,'fi-sm')} ${zh(s.c)}</div>
+    <div class="stat-val">${s.ga} GA</div></div>`).join('');
+
+  const xgs=[{c:'GER',x:7.8},{c:'FRA',x:7.6},{c:'BRA',x:6.9},{c:'NED',x:6.5},{c:'ARG',x:6.2},{c:'ESP',x:5.8}];
+  document.getElementById('xg-best').innerHTML=xgs.map((s,i)=>`
+    <div class="stat-row"><div class="stat-rank">${i+1}</div>
+    <div class="stat-team">${tf(s.c,'fi-sm')} ${zh(s.c)}</div>
+    <div class="stat-val">${s.x}</div></div>`).join('');
+
+  const bigG=[{h:'GER',a:'CUW',hs:7,as:1},{h:'SWE',a:'TUN',hs:5,as:1},{h:'NED',a:'SWE',hs:5,as:1},{h:'NZL',a:'BEL',hs:1,as:5},{h:'SEN',a:'IRQ',hs:5,as:0},{h:'CAN',a:'QAT',hs:6,as:2}];
+  document.getElementById('most-goals').innerHTML=bigG.sort((a,b)=>(b.hs+b.as)-(a.hs+a.as)).map((g,i)=>`
+    <div class="stat-row"><div class="stat-rank">${i+1}</div>
+    <div class="stat-team">${tf(g.h,'fi-sm')} ${zh(g.h)} ${g.hs}–${g.as} ${tf(g.a,'fi-sm')} ${zh(g.a)}</div>
+    <div class="stat-val">${g.hs+g.as}球</div></div>`).join('');
+
+  buildStandings();
+}
+
+function buildStandings(){
+  const groups={
+    A:{t:['COL','POR','COD','UZB'],m:[['COL','UZB',3,1],['POR','COD',1,1],['COL','COD',1,0],['POR','UZB',5,0],['COL','POR',0,0],['COD','UZB',3,1]]},
+    B:{t:['ARG','ALG','AUT','JOR'],m:[['ARG','ALG',3,0],['AUT','JOR',3,1],['ARG','AUT',2,0],['JOR','ALG',1,2],['JOR','ARG',1,3],['ALG','AUT',3,3]]},
+    C:{t:['FRA','NOR','SEN','IRQ'],m:[['FRA','SEN',3,1],['IRQ','NOR',1,4],['FRA','IRQ',3,0],['NOR','SEN',3,2],['NOR','FRA',1,4],['SEN','IRQ',5,0]]},
+    D:{t:['ENG','CRO','GHA','PAN'],m:[['ENG','CRO',4,2],['GHA','PAN',1,0],['ENG','GHA',0,0],['PAN','CRO',0,1],['PAN','ENG',0,2],['CRO','GHA',2,1]]},
+  };
+  function calcGrp(g){
+    const pts={},gd={},gf={};g.t.forEach(t=>{pts[t]=0;gd[t]=0;gf[t]=0});
+    g.m.forEach(([h,a,hs,as])=>{
+      gf[h]+=hs;gf[a]+=as;gd[h]+=hs-as;gd[a]+=as-hs;
+      if(hs>as)pts[h]+=3;else if(hs===as){pts[h]+=1;pts[a]+=1}else pts[a]+=3;
+    });
+    return g.t.sort((x,y)=>pts[y]-pts[x]||(gd[y]-gd[x])||(gf[y]-gf[x])).map((t,i)=>({t,pts:pts[t],gd:gd[t],gf:gf[t],q:i<2}));
+  }
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">';
+  ['A','B','C','D'].forEach(gk=>{
+    const rows=calcGrp(groups[gk]);
+    html+=`<div style="background:var(--dark3);border-radius:10px;padding:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--gold)">${gk}組</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <tr style="color:var(--text2)"><th style="text-align:left;padding:3px 0">球隊</th><th>GF</th><th>GD</th><th>Pts</th></tr>
+        ${rows.map(r=>`<tr style="color:${r.q?'var(--green)':'var(--text2)'}">
+          <td style="padding:4px 0">${tf(r.t,'fi-sm')} ${zh(r.t)}</td>
+          <td style="text-align:center">${r.gf}</td>
+          <td style="text-align:center">${r.gd>0?'+'+r.gd:r.gd}</td>
+          <td style="text-align:center;font-weight:700;color:var(--gold)">${r.pts}</td>
+        </tr>`).join('')}
+      </table>
+    </div>`;
+  });
+  html+=`</div><div style="margin-top:10px;font-size:11px;color:var(--text2)">🟢 已出線（前2名） · 顯示A-D組，E-L組請篩選查看比賽記錄</div>`;
+  document.getElementById('all-standings').innerHTML=html;
+}
+
+// ========== BRACKET TAB ==========
+function buildBracket(){
+  const matches=[
+    {rnd:'32強 ✅',h:'ZAF',a:'CAN',hs:0,as:1,note:'Eustaquio 90+2\''},
+    {rnd:'32強 Jun 30',h:'BRA',a:'JPN',pred:'巴西 72%'},
+    {rnd:'32強 Jun 30',h:'GER',a:'PRY',pred:'德國 65%'},
+    {rnd:'32強 Jun 30',h:'NED',a:'MAR',pred:'荷蘭/摩洛哥 52%'},
+    {rnd:'32強 Jul 1',h:'CIV',a:'NOR',pred:'挪威 58%'},
+    {rnd:'32強 Jul 1',h:'FRA',a:'SWE',pred:'法國 76%'},
+    {rnd:'32強 Jul 1',h:'MEX',a:'ECU',pred:'墨西哥 60%'},
+    {rnd:'32強 Jul 2',h:'ENG',a:'COD',pred:'英格蘭 79%'},
+    {rnd:'32強 Jul 2',h:'BEL',a:'SEN',pred:'比利時 63%'},
+    {rnd:'32強 Jul 2',h:'USA',a:'BIH',pred:'美國 69%'},
+    {rnd:'32強 Jul 3',h:'ESP',a:'AUT',pred:'西班牙 74%'},
+    {rnd:'32強 Jul 3',h:'POR',a:'CRO',pred:'葡萄牙 67%'},
+    {rnd:'32強 Jul 3',h:'CHE',a:'ALG',pred:'瑞士 61%'},
+    {rnd:'32強 Jul 4',h:'AUS',a:'EGY',pred:'澳洲 55%'},
+    {rnd:'32強 Jul 4',h:'ARG',a:'CPV',pred:'阿根廷 89%'},
+    {rnd:'32強 Jul 4',h:'COL',a:'GHA',pred:'哥倫比亞 66%'},
+  ];
+  document.getElementById('bracket-grid').innerHTML=matches.map(m=>{
+    const hcc=T[m.h]?T[m.h][0]:'',acc=T[m.a]?T[m.a][0]:'';
+    const done=m.hs!=null;
+    return`<div class="bracket-card">
+      <div class="bracket-rnd">${m.rnd}</div>
+      <div class="bracket-match">
+        <div class="bracket-team">${fi(hcc,'fi-sm')} ${zh(m.h)}</div>
+        ${done?`<div class="bracket-score">${m.hs}–${m.as}</div>`:`<div style="font-size:12px;color:var(--text2)">VS</div>`}
+        <div class="bracket-team">${fi(acc,'fi-sm')} ${zh(m.a)}</div>
+      </div>
+      ${m.note?`<div style="font-size:11px;color:var(--gold);margin-top:6px">${m.note}</div>`:''}
+      ${m.pred?`<div style="font-size:11px;color:var(--text2);margin-top:6px">預測: <strong style="color:var(--text)">${m.pred}</strong></div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ========== TABS ==========
+function showTab(name){
+  ['scores','predict','stats','bracket'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display=t===name?'block':'none';
+    document.getElementById('tbtn-'+t).classList.toggle('active',t===name);
+  });
+  if(name==='predict')buildPredictions();
+  if(name==='stats')buildStats();
+  if(name==='bracket')buildBracket();
+}
+
+// ========== ESPN LIVE DATA ==========
+// ESPN 公開 API（免 key，CORS 允許）隊名對照表
+const ESPN_TEAM={
+  'Brazil':'BRA','Japan':'JPN','Canada':'CAN','South Africa':'ZAF',
+  'Argentina':'ARG','Mexico':'MEX','Germany':'GER','Spain':'ESP',
+  'France':'FRA','England':'ENG','Portugal':'POR','Netherlands':'NED',
+  'United States':'USA','Morocco':'MAR','Senegal':'SEN','Ecuador':'ECU',
+  'Turkey':'TUR','Croatia':'CRO','Uruguay':'URU','Saudi Arabia':'KSA',
+  'Australia':'AUS','Belgium':'BEL','Colombia':'COL','Switzerland':'SUI',
+  'South Korea':'KOR','Algeria':'ALG','Cameroon':'CMR','Serbia':'SRB',
+  'Poland':'POL','Denmark':'DEN','Nigeria':'NGR','Ivory Coast':'CIV',
+  "Cote d'Ivoire":'CIV','Chile':'CHI','Venezuela':'VEN','Bolivia':'BOL',
+  'Paraguay':'PAR','Peru':'PER','DR Congo':'COD','Tunisia':'TUN',
+  'New Zealand':'NZL','Indonesia':'IDN','Thailand':'THA','Uzbekistan':'UZB',
+  'Qatar':'QAT','Iran':'IRN','Austria':'AUT','Romania':'ROU',
+  'Ukraine':'UKR','Bosnia & Herzegovina':'BIH','Bosnia and Herzegovina':'BIH',
+  'Curacao':'CUW','Panama':'PAN','Honduras':'HON','Costa Rica':'CRC',
+  'Jamaica':'JAM','Haiti':'HAI','El Salvador':'SLV','Trinidad and Tobago':'TRI',
+  'Cuba':'CUB','Guatemala':'GUA','Togo':'TOG','Benin':'BEN','Angola':'ANG',
+  'Egypt':'EGY','Ghana':'GHA','Mali':'MLI','Congo':'CGO','Zambia':'ZAM',
+  'Kenya':'KEN','Tanzania':'TAN','Iraq':'IRQ','Syria':'SYR','UAE':'UAE',
+  'Jordan':'JOR','Bahrain':'BHR','Oman':'OMA','Kuwait':'KUW','Scotland':'SCO',
+  'Wales':'WAL','Slovakia':'SVK','Hungary':'HUN','Czech Republic':'CZE',
+  'Greece':'GRE','Sweden':'SWE','Norway':'NOR','Finland':'FIN',
+};
+
+let lastFetchOk=false;
+
+async function fetchLiveScores(){
+  const el=document.getElementById('last-upd');
+  el.textContent='⏳ 同步中...';
+  let synced=0;
+  try{
+    // ── Part 1: Scoreboard（比分快覽）──
+    const url='https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
+    const res=await fetch(url,{signal:AbortSignal.timeout(8000)});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    (data.events||[]).forEach(ev=>{
+      const comp=ev.competitions&&ev.competitions[0];
+      if(!comp)return;
+      const home=comp.competitors.find(c=>c.homeAway==='home');
+      const away=comp.competitors.find(c=>c.homeAway==='away');
+      if(!home||!away)return;
+      const hCode=ESPN_TEAM[home.team.displayName]||ESPN_TEAM[home.team.shortDisplayName];
+      const aCode=ESPN_TEAM[away.team.displayName]||ESPN_TEAM[away.team.shortDisplayName];
+      if(!hCode||!aCode)return;
+      const st=comp.status?.type?.name||'';
+      const isFinal=st==='STATUS_FINAL';
+      const isInProgress=st==='STATUS_IN_PROGRESS';
+      if(isFinal||isInProgress){
+        const hs=parseInt(home.score||0);
+        const as=parseInt(away.score||0);
+        const m=R32.find(x=>(x.h===hCode&&x.a===aCode)||(x.h===aCode&&x.a===hCode));
+        if(m){
+          if(m.h===hCode){m.hs=hs;m.as=as;}
+          else{m.hs=as;m.as=hs;}
+          if(isInProgress){const min=comp.status?.displayClock||'';m.note=`🔴 ${min} 進行中`;}
+          synced++;
+        }
+      }
+    });
+    lastFetchOk=true;
+  }catch(e){
+    lastFetchOk=false;
+    console.warn('[FIFA] ESPN Scoreboard 失敗:',e.message);
+  }
+
+  // ── Part 2: Summary（詳細資料，含統計/評論/進球）──
+  // 取所有有 eid 的 R32 場次，並發現 LIVE 尚未快取或已過 5 分鐘
+  const now=Date.now();
+  const toFetch=R32.filter(m=>m.eid&&(!LIVE[m.id]||now-LIVE[m.id].fetchedAt>5*60*1000));
+  if(toFetch.length>0){
+    await Promise.all(toFetch.map(async m=>{
+      try{
+        const r=await fetch(
+          `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${m.eid}`,
+          {signal:AbortSignal.timeout(10000)});
+        if(!r.ok)return;
+        const d=await r.json();
+
+        // ── 比賽狀態 ──
+        const comp=d.header?.competitions?.[0];
+        const homeC=comp?.competitors?.find(c=>c.homeAway==='home');
+        const awayC=comp?.competitors?.find(c=>c.homeAway==='away');
+        const state=comp?.status?.type?.state||'';   // 'pre','in','post'
+        const minute=comp?.status?.displayClock||'';
+        const period=comp?.status?.type?.description||'';
+        if(homeC&&awayC&&(state==='in'||state==='post')){
+          const hs2=parseInt(homeC.score||0);
+          const as2=parseInt(awayC.score||0);
+          const r32m=R32.find(x=>x.id===m.id);
+          if(r32m){r32m.hs=hs2;r32m.as=as2;}
+        }
+
+        // ── Key Events (進球/牌/換人) ──
+        const events=(d.keyEvents||[]).map(e=>{
+          const aType=e.type?.type||'';
+          const player=e.athletes?.[0]?.displayName||e.participants?.[0]?.displayName||'';
+          const teamFull=e.team?.displayName||'';
+          const teamCode=ESPN_TEAM[teamFull]||e.team?.abbreviation||'';
+          return{
+            min:e.clock?.displayValue||'',
+            type:aType==='goal'||aType==='own-goal'?'goal':aType==='yellow-card'?'yellow':aType==='red-card'?'red':aType==='substitution'?'sub':'skip',
+            team:teamCode,player,detail:e.type?.text||aType
+          };
+        }).filter(e=>e.type!=='skip');
+
+        // ── Commentary（最新在前）──
+        const commentary=[...(d.commentary||[])]
+          .sort((a,b)=>(b.sequence||0)-(a.sequence||0))
+          .map(c=>({min:c.time?.displayValue||c.clock?.displayValue||'',text:c.text||''}))
+          .filter(c=>c.text);
+
+        // ── Boxscore Stats ──
+        const bsTeams=d.boxscore?.teams||[];
+        const hsTeam=bsTeams.find(t=>t.team?.homeAway==='home')||bsTeams[0];
+        const asTeam=bsTeams.find(t=>t.team?.homeAway==='away')||bsTeams[1];
+        function gs(team,key){return team?.statistics?.find(s=>s.name===key)?.displayValue||'–';}
+        function gn(team,key){return parseFloat(team?.statistics?.find(s=>s.name===key)?.value||0);}
+
+        const espnStats=[
+          {label:'射門',rows:[
+            {name:'射門總數',h:gs(hsTeam,'totalShots'),a:gs(asTeam,'totalShots'),hv:gn(hsTeam,'totalShots'),av:gn(asTeam,'totalShots')},
+            {name:'射正',h:gs(hsTeam,'shotsOnTarget'),a:gs(asTeam,'shotsOnTarget'),hv:gn(hsTeam,'shotsOnTarget'),av:gn(asTeam,'shotsOnTarget')},
+            {name:'被封鎖',h:gs(hsTeam,'blockedShots'),a:gs(asTeam,'blockedShots'),hv:gn(hsTeam,'blockedShots'),av:gn(asTeam,'blockedShots')},
+          ]},
+          {label:'進攻',rows:[
+            {name:'控球率',h:gs(hsTeam,'possessionPct')+'%',a:gs(asTeam,'possessionPct')+'%',hv:gn(hsTeam,'possessionPct'),av:gn(asTeam,'possessionPct'),total:100},
+            {name:'角球',h:gs(hsTeam,'wonCorners'),a:gs(asTeam,'wonCorners'),hv:gn(hsTeam,'wonCorners'),av:gn(asTeam,'wonCorners')},
+            {name:'越位',h:gs(hsTeam,'offsides'),a:gs(asTeam,'offsides'),hv:gn(hsTeam,'offsides'),av:gn(asTeam,'offsides')},
+          ]},
+          {label:'傳球',rows:[
+            {name:'傳球成功率',h:gs(hsTeam,'passPct')+'%',a:gs(asTeam,'passPct')+'%',hv:gn(hsTeam,'passPct'),av:gn(asTeam,'passPct'),total:100},
+            {name:'長傳',h:gs(hsTeam,'accurateLongBalls')+'/'+gs(hsTeam,'totalLongBalls'),a:gs(asTeam,'accurateLongBalls')+'/'+gs(asTeam,'totalLongBalls'),hv:gn(hsTeam,'accurateLongBalls'),av:gn(asTeam,'accurateLongBalls')},
+            {name:'傳中',h:gs(hsTeam,'accurateCrosses')+'/'+gs(hsTeam,'totalCrosses'),a:gs(asTeam,'accurateCrosses')+'/'+gs(asTeam,'totalCrosses'),hv:gn(hsTeam,'accurateCrosses'),av:gn(asTeam,'accurateCrosses')},
+          ]},
+          {label:'防守',rows:[
+            {name:'犯規',h:gs(hsTeam,'foulsCommitted'),a:gs(asTeam,'foulsCommitted'),hv:gn(hsTeam,'foulsCommitted'),av:gn(asTeam,'foulsCommitted')},
+            {name:'解圍',h:gs(hsTeam,'effectiveClearance'),a:gs(asTeam,'effectiveClearance'),hv:gn(hsTeam,'effectiveClearance'),av:gn(asTeam,'effectiveClearance')},
+            {name:'搶斷',h:gs(hsTeam,'effectiveTackles')+'/'+gs(hsTeam,'totalTackles'),a:gs(asTeam,'effectiveTackles')+'/'+gs(asTeam,'totalTackles'),hv:gn(hsTeam,'effectiveTackles'),av:gn(asTeam,'effectiveTackles')},
+            {name:'攔截',h:gs(hsTeam,'interceptions'),a:gs(asTeam,'interceptions'),hv:gn(hsTeam,'interceptions'),av:gn(asTeam,'interceptions')},
+            {name:'黃牌',h:gs(hsTeam,'yellowCards'),a:gs(asTeam,'yellowCards'),hv:gn(hsTeam,'yellowCards'),av:gn(asTeam,'yellowCards')},
+          ]},
+          {label:'門將',rows:[
+            {name:'撲救',h:gs(hsTeam,'saves'),a:gs(asTeam,'saves'),hv:gn(hsTeam,'saves'),av:gn(asTeam,'saves')},
+          ]},
+        ];
+
+        // ── 場館/裁判 ──
+        const venue=d.gameInfo?.venue?.fullName||'';
+        const officials=d.gameInfo?.officials||[];
+        const referee=officials.find(o=>/referee/i.test(o.position?.displayName||''))?.displayName||officials[0]?.displayName||'';
+
+        // ── 迷你統計（雷達頁用）──
+        const miniStats=[
+          {name:'控球率',h:gs(hsTeam,'possessionPct')+'%',a:gs(asTeam,'possessionPct')+'%'},
+          {name:'射門',h:gs(hsTeam,'totalShots'),a:gs(asTeam,'totalShots')},
+          {name:'射正',h:gs(hsTeam,'shotsOnTarget'),a:gs(asTeam,'shotsOnTarget')},
+          {name:'角球',h:gs(hsTeam,'wonCorners'),a:gs(asTeam,'wonCorners')},
+          {name:'犯規',h:gs(hsTeam,'foulsCommitted'),a:gs(asTeam,'foulsCommitted')},
+          {name:'黃牌',h:gs(hsTeam,'yellowCards'),a:gs(asTeam,'yellowCards')},
+        ];
+
+        LIVE[m.id]={
+          state,minute,period,
+          hs:homeC?parseInt(homeC.score||0):null,
+          as:awayC?parseInt(awayC.score||0):null,
+          events:events.length?events:null,
+          commentary,
+          espnStats,
+          stats:miniStats,
+          venue,referee,
+          fetchedAt:Date.now()
+        };
+      }catch(e2){
+        console.warn('[FIFA] Summary fetch failed for',m.id,e2.message);
+      }
+    }));
+  }
+
+  const n=new Date();
+  const hm=`${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`;
+  if(lastFetchOk){
+    el.textContent=synced>0?`✅ ESPN同步 ${hm}（${synced}場）`:`✅ ${hm} 已更新`;
+    el.style.color='var(--green)';
+    setTimeout(()=>el.style.color='',3000);
+  }else{
+    el.textContent=`⚠️ 離線 ${hm}（靜態資料）`;
+    el.style.color='var(--text2)';
+  }
+}
+
+// ========== AUTO REFRESH ==========
+const REFRESH_INT=30;
+let countdown=REFRESH_INT;
+
+function tickRefresh(){
+  countdown--;
+  const pct=countdown/REFRESH_INT;
+  document.getElementById('refresh-ring').style.strokeDashoffset=94.25*(1-pct);
+  if(countdown<=0)doRefresh();
+}
+
+async function doRefresh(){
+  countdown=REFRESH_INT;
+  await fetchLiveScores();
+  renderMatches();
+  buildTicker();
+}
+
+function showToast(){
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&countdown<10)doRefresh()});
+setInterval(tickRefresh,1000);
+
+// INIT
+buildTicker();
+renderMatches();
+fetchLiveScores().then(()=>{renderMatches();buildTicker();});
+</script>
+</body>
+</html>
