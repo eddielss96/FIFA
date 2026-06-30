@@ -209,6 +209,14 @@ main{max-width:1100px;margin:0 auto;padding:16px;animation:fadeUp .4s ease}
   .mtab{font-size:11px;padding:9px 4px}
   .modal-team{min-width:64px}
 }
+
+/* RADAR SVG SMOOTH TRANSITIONS */
+.rsv circle[id^="ball-"]{transition:cx .52s cubic-bezier(.4,0,.2,1),cy .52s cubic-bezier(.4,0,.2,1),fill .3s ease}
+.rsv circle[id^="rt"]{transition:cx .42s ease,cy .42s ease,r .3s ease,fill .3s ease}
+.rsv line[id^="rl"]{transition:x1 .4s ease,y1 .4s ease,x2 .4s ease,y2 .4s ease,stroke .3s}
+.rsv text[id^="ball-ico"]{transition:x .52s cubic-bezier(.4,0,.2,1),y .52s cubic-bezier(.4,0,.2,1)}
+.rsv text[id^="badge-txt"]{transition:x .52s cubic-bezier(.4,0,.2,1),y .52s cubic-bezier(.4,0,.2,1)}
+.rsv circle[id^="bg-el"]{transition:cx .52s ease,cy .52s ease}
 </style>
 </head>
 <body>
@@ -681,7 +689,53 @@ let LIVE = {}; // keyed by matchId: {hs,as,state,minute,events,commentary,espnSt
 // ========== 英文→繁體中文 評論翻譯 ==========
 function cnComm(text){
   if(!text) return text;
+  // 英文位置輔助翻譯（用於 wins a free kick 等短語）
+  function trPos(pos){
+    const p=(pos||'').toLowerCase().trim();
+    if(/right wing|right flank|right side/.test(p))return'右路';
+    if(/left wing|left flank|left side/.test(p))return'左路';
+    if(/centre|center/.test(p))return'中路';
+    if(/attacking half/.test(p))return'前場';
+    if(/defensive half/.test(p))return'後場';
+    if(/own half/.test(p))return'己方半場';
+    return pos.trim();
+  }
+  // 括號內隊名對照（英→中）
+  const TZ={
+    'Brazil':'巴西','Japan':'日本','Canada':'加拿大','South Africa':'南非',
+    'Argentina':'阿根廷','Mexico':'墨西哥','Germany':'德國','Spain':'西班牙',
+    'France':'法國','England':'英格蘭','Portugal':'葡萄牙','Netherlands':'荷蘭',
+    'United States':'美國','USA':'美國','Morocco':'摩洛哥','Senegal':'塞內加爾',
+    'Ecuador':'厄瓜多','Turkey':'土耳其','Croatia':'克羅埃西亞','Australia':'澳洲',
+    'Belgium':'比利時','Colombia':'哥倫比亞','Switzerland':'瑞士','Algeria':'阿爾及利亞',
+    'Norway':'挪威','Ivory Coast':'象牙海岸','Egypt':'埃及','Ghana':'迦納',
+    'Paraguay':'巴拉圭','DR Congo':'剛果民主共和國','Bosnia':'波黑','Austria':'奧地利',
+    'Sweden':'瑞典','Cape Verde':'維德角',
+  };
   return text
+    // 括號隊名
+    .replace(/\(([A-Z][a-zA-Z\s]+)\)/g,(m,n)=>TZ[n.trim()]?`(${TZ[n.trim()]})`:m)
+    // 結構化短語（先匹配再做簡單替換）
+    .replace(/Attempt saved\./gi,'射門被撲出。')
+    .replace(/Attempt blocked\./gi,'射門被封堵。')
+    .replace(/Attempt missed\./gi,'射門偏出。')
+    .replace(/Foul by ([^.,!]+)/gi,(_,p)=>`${p.trim()} 犯規`)
+    .replace(/wins a free kick (?:in|on) the ([^.,!]+)/gi,(_,pos)=>`在${trPos(pos)}獲得任意球`)
+    .replace(/wins a free kick/gi,'獲得任意球')
+    .replace(/right footed shot/gi,'右腳射門')
+    .replace(/left footed shot/gi,'左腳射門')
+    .replace(/Assisted by ([^.,!]+)/gi,(_,p)=>`助攻：${p.trim()}`)
+    .replace(/following a corner/gi,'（角球配合）')
+    .replace(/following a fast break/gi,'（快速反攻）')
+    .replace(/following a counter[- ]?attack/gi,'（反擊）')
+    .replace(/from (?:the )?very close range/gi,'近距離')
+    .replace(/from (?:the )?cent(?:re|er) of the box/gi,'禁區中央')
+    .replace(/from outside(?: the)? box/gi,'禁區外')
+    .replace(/from (?:the )?right side of the box/gi,'禁區右側')
+    .replace(/from (?:the )?left side of the box/gi,'禁區左側')
+    .replace(/from (?:the )?six.yard box/gi,'小禁區')
+    .replace(/Dangerous ball into the box/gi,'危險傳球入禁區')
+    .replace(/Conceded by ([^.,!]+)/gi,(_,p)=>`${p.trim()} 造成失球`)
     // 重要事件
     .replace(/\bGoal[!！]?\s*/gi,'⚽ 進球！')
     .replace(/\bSave[!！]?\s*/gi,'撲救！')
@@ -771,7 +825,6 @@ function radarAutoPlay(matchId){
   if(RADAR_TIMER[matchId]) clearInterval(RADAR_TIMER[matchId]);
   const rs=RADAR_STATE[matchId];
   if(!rs) return;
-  // 若已在最新，先回開場
   if(rs.step<=0) radarNav(matchId,9999);
   const btn=document.getElementById('radar-play-'+matchId);
   if(btn){btn.textContent='⏸ 暫停';btn.onclick=()=>radarPause(matchId);}
@@ -779,7 +832,7 @@ function radarAutoPlay(matchId){
     const r=RADAR_STATE[matchId];
     if(!r||r.step<=0){radarPause(matchId);return;}
     radarNav(matchId,-1);
-  },1200);
+  },800);
 }
 
 function radarPause(matchId){
@@ -792,12 +845,15 @@ function radarNav(matchId, delta){
   const rs = RADAR_STATE[matchId];
   if(!rs || !rs.plays.length) return;
   rs.step = Math.max(0, Math.min(rs.plays.length-1, rs.step + delta));
-  // 更新 SVG
   const slice = rs.plays.slice(rs.step, rs.step+8);
-  const svg = buildPitchSVG(slice, rs.hCode, rs.aCode);
   const pitchEl = document.getElementById('radar-pitch-'+matchId);
-  if(pitchEl) pitchEl.innerHTML = svg;
-  // 更新動作說明
+  // 若 SVG 已存在（含 class rsv），用屬性更新實現 CSS 平滑過渡；否則初次渲染
+  if(pitchEl && pitchEl.querySelector('svg.rsv')){
+    updateRadarEl(matchId, slice, rs.hCode, rs.aCode);
+  } else if(pitchEl){
+    pitchEl.innerHTML = buildPitchSVG(slice, rs.hCode, rs.aCode, matchId);
+  }
+  // 更新文字說明
   const play = rs.plays[rs.step]||{};
   const infoEl = document.getElementById('radar-info-'+matchId);
   if(infoEl) infoEl.innerHTML = `
@@ -807,7 +863,6 @@ function radarNav(matchId, delta){
     <div style="font-size:12px;color:var(--text);line-height:1.5">${cnComm(play.text)||''}</div>
     ${play.min?`<div style="font-size:10px;color:var(--gold);margin-top:4px;font-weight:700">${play.min}'</div>`:''}
   `;
-  // 按鈕狀態
   const prevBtn = document.getElementById('radar-prev-'+matchId);
   const nextBtn = document.getElementById('radar-next-'+matchId);
   const stepEl  = document.getElementById('radar-step-'+matchId);
@@ -816,18 +871,22 @@ function radarNav(matchId, delta){
   if(stepEl)  stepEl.textContent = `${rs.plays.length-rs.step} / ${rs.plays.length}`;
 }
 
-// ── 依比賽文字解析場上位置（供雷達視覺化）──
+// ── 依比賽文字解析場上位置（供雷達視覺化，中英文均支援）──
 function parseFieldPos(text){
   const t=(text||'').toLowerCase();
-  let x=50,y=50; // 默認中圈
-  // 左右位置 (x: 0=左邊線, 100=右邊線)
-  if(/left wing|left flank|left side/.test(t))x=20;
-  else if(/right wing|right flank|right side/.test(t))x=80;
-  else if(/centre|center/.test(t)&&!/box/.test(t))x=50;
-  // 縱深位置 (y: 0=上方球門線, 100=下方球門線)
-  // 球隊進攻方向：主隊攻右，客隊攻左 → 動作集中在 x>50
+  const o=text||''; // 原文保留（中文不受 toLowerCase 影響）
+  let x=50,y=50;
+
+  // ── 英文左右位置 ──
+  if(/left wing|left flank|left side/.test(t)) x=20;
+  else if(/right wing|right flank|right side/.test(t)) x=80;
+  // ── 中文左右位置 ──
+  else if(/左路|左側|左翼|從左|左腳/.test(o)) x=22;
+  else if(/右路|右側|右翼|從右|右腳/.test(o)) x=78;
+
+  // ── 縱深（英文優先）──
   if(/penalty spot|from the spot/.test(t)){x=82;y=50;}
-  else if(/centre of the box|center of the box/.test(t)){x=87;y=50;}
+  else if(/cent(?:re|er) of the box/.test(t)){x=87;y=50;}
   else if(/six.yard|close range|tap.in/.test(t)){x=93;y=50;}
   else if(/the box/.test(t)&&!/outside/.test(t)){x=83;y=Math.random()*30+35;}
   else if(/outside the box|outside box/.test(t)){x=73;y=Math.random()*30+35;}
@@ -835,76 +894,123 @@ function parseFieldPos(text){
   else if(/attacking half/.test(t)){x=65;y=50;}
   else if(/defensive half/.test(t)){x=35;y=50;}
   else if(/own half/.test(t)){x=25;y=50;}
+  // ── 縱深（中文）──
+  else if(/點球點|罰球點/.test(o)){x=82;y=50;}
+  else if(/禁區中央|禁區正中/.test(o)){x=87;y=50;}
+  else if(/小禁區|門前|近距離/.test(o)){x=93;y=50;}
+  else if(/禁區右側/.test(o)){x=83;y=70;}
+  else if(/禁區左側/.test(o)){x=83;y=30;}
+  else if(/禁區內|進入禁區|禁區/.test(o)){x=83;y=Math.random()*30+35;}
+  else if(/禁區外|禁區邊緣|弧頂/.test(o)){x=73;y=Math.random()*30+35;}
+  else if(/角球/.test(o)){x=97;y=/左/.test(o)?15:85;}
+  else if(/前場|對方半場/.test(o)){x=65;y=50;}
+  else if(/後場|己方半場/.test(o)){x=30;y=50;}
+  else if(/中圈|中場中央/.test(o)){x=50;y=50;}
+
   return{x,y};
 }
 
-// ── 繪製足球場雷達 SVG ──
-function buildPitchSVG(plays, hCode, aCode){
+// ── 計算雷達各點的 SVG 座標 ──
+function computeRadarPts(plays, hCode, aCode){
   const W=340, H=210;
-  // 取最近 8 筆評論的位置
+  const toSX = x => x/100*(W-40)+20;
+  const toSY = y => y/100*(H-30)+15;
   const pts = plays.slice(0,8).map((p,i)=>{
     const isHome = p.team===en(hCode)||p.team===hCode;
     const pos = parseFieldPos(p.text);
-    // 客隊進攻方向相反
     if(!isHome) pos.x = 100-pos.x;
-    return {...pos, i, isHome, min:p.min||'', text:(p.text||'').substring(0,80)};
+    return {svgX:toSX(pos.x), svgY:toSY(pos.y), i, isHome, min:p.min||'', text:(p.text||'').substring(0,80)};
   });
-  if(!pts.length) pts.push({x:50,y:50,i:0,isHome:true,min:'',text:'比賽進行中'});
-  const last = pts[0];
-  const toSvgX = x => x/100*(W-40)+20;
-  const toSvgY = y => y/100*(H-30)+15;
-  const lx=toSvgX(last.x), ly=toSvgY(last.y);
-  const ballColor=last.isHome?'#1a73e8':'#ff4d4d';
+  if(!pts.length) pts.push({svgX:toSX(50),svgY:toSY(50),i:0,isHome:true,min:'',text:'比賽進行中'});
+  return pts;
+}
 
-  const trail = pts.slice(1).map(p=>{
-    const px=toSvgX(p.x), py=toSvgY(p.y);
-    const op=(0.5-(p.i-1)*0.06).toFixed(2);
-    return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(3.5-p.i*0.3).toFixed(1)}" fill="rgba(255,255,255,${op})"/>
-    <line x1="${px.toFixed(1)}" y1="${py.toFixed(1)}" x2="${toSvgX(pts[Math.max(0,p.i-1)].x).toFixed(1)}" y2="${toSvgY(pts[Math.max(0,p.i-1)].y).toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="3,3"/>`;
+// ── 繪製足球場雷達 SVG（含穩定 ID 供 CSS 過渡動畫使用）──
+function buildPitchSVG(plays, hCode, aCode, mid){
+  const W=340, H=210;
+  const id=mid||'0';
+  const pts = computeRadarPts(plays, hCode, aCode);
+  const last = pts[0];
+  const bc = last.isHome?'#1a73e8':'#ff4d4d';
+
+  const trailEls = Array.from({length:7},(_,i)=>{
+    const p = pts[i+1]||last;
+    const pr = pts[i]||last;
+    const op=(0.46-i*0.055).toFixed(2);
+    const r=(3.4-i*0.28).toFixed(1);
+    return `<circle id="rt${i}-${id}" cx="${p.svgX.toFixed(1)}" cy="${p.svgY.toFixed(1)}" r="${r}" fill="rgba(255,255,255,${op})"/>
+<line id="rl${i}-${id}" x1="${p.svgX.toFixed(1)}" y1="${p.svgY.toFixed(1)}" x2="${pr.svgX.toFixed(1)}" y2="${pr.svgY.toFixed(1)}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="3,3"/>`;
   }).join('');
 
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;border-radius:10px;display:block">
-    <!-- 草皮 -->
+  const timeBadge = last.min
+    ? `<rect id="bg-el-${id}" x="${(last.svgX-14).toFixed(1)}" y="${(last.svgY-22).toFixed(1)}" width="28" height="12" rx="6" fill="rgba(0,0,0,0.68)"/>
+       <text id="ball-ico-min-${id}" x="${last.svgX.toFixed(1)}" y="${(last.svgY-13).toFixed(1)}" font-size="9" text-anchor="middle" fill="${bc}" font-weight="bold" font-family="sans-serif">${last.min}'</text>`
+    : `<rect id="bg-el-${id}" x="0" y="0" width="0" height="0"/>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="rsv" style="width:100%;border-radius:10px;display:block">
     <defs>
-      <linearGradient id="pitch-grad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#2d8a22"/>
-        <stop offset="50%" stop-color="#2d7a1f"/>
-        <stop offset="100%" stop-color="#2d8a22"/>
+      <linearGradient id="pg-${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2d8a22"/><stop offset="50%" stop-color="#2d7a1f"/><stop offset="100%" stop-color="#2d8a22"/>
       </linearGradient>
+      <filter id="bglow-${id}" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
     </defs>
-    <rect width="${W}" height="${H}" fill="url(#pitch-grad)" rx="10"/>
-    <!-- 條紋 -->
-    ${Array.from({length:8},(_,i)=>`<rect x="${20+i*(W-40)/8}" y="15" width="${(W-40)/16}" height="${H-30}" fill="rgba(0,0,0,0.04)"/>`).join('')}
-    <!-- 外框 -->
+    <rect width="${W}" height="${H}" fill="url(#pg-${id})" rx="10"/>
+    ${Array.from({length:8},(_,i)=>`<rect x="${(20+i*(W-40)/8).toFixed(1)}" y="15" width="${((W-40)/16).toFixed(1)}" height="${H-30}" fill="rgba(0,0,0,0.04)"/>`).join('')}
     <rect x="15" y="10" width="${W-30}" height="${H-20}" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1.5" rx="2"/>
-    <!-- 中線 -->
     <line x1="${W/2}" y1="10" x2="${W/2}" y2="${H-10}" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
-    <!-- 中圈 -->
     <circle cx="${W/2}" cy="${H/2}" r="32" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
     <circle cx="${W/2}" cy="${H/2}" r="2.5" fill="rgba(255,255,255,0.6)"/>
-    <!-- 左禁區（主隊守）-->
     <rect x="15" y="${H/2-38}" width="52" height="76" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
     <rect x="15" y="${H/2-20}" width="24" height="40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
     <circle cx="67" cy="${H/2}" r="2" fill="rgba(255,255,255,0.5)"/>
-    <!-- 右禁區（客隊守）-->
     <rect x="${W-67}" y="${H/2-38}" width="52" height="76" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
     <rect x="${W-39}" y="${H/2-20}" width="24" height="40" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="1"/>
     <circle cx="${W-67}" cy="${H/2}" r="2" fill="rgba(255,255,255,0.5)"/>
-    <!-- 球門 -->
     <rect x="5" y="${H/2-14}" width="10" height="28" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
     <rect x="${W-15}" y="${H/2-14}" width="10" height="28" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
-    <!-- 隊名標籤 -->
     <text x="40" y="${H-3}" font-size="9.5" fill="rgba(255,255,255,0.75)" text-anchor="middle" font-family="sans-serif" font-weight="bold">${zh(hCode)} ▶</text>
     <text x="${W-40}" y="${H-3}" font-size="9.5" fill="rgba(255,255,255,0.75)" text-anchor="middle" font-family="sans-serif" font-weight="bold">◀ ${zh(aCode)}</text>
-    <!-- 軌跡 -->
-    ${trail}
-    <!-- 球 -->
-    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="9" fill="${ballColor}" opacity="0.85" filter="url(#ball-shadow)"/>
-    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="9" fill="none" stroke="white" stroke-width="1.8"/>
-    <text x="${lx.toFixed(1)}" y="${(ly+3.5).toFixed(1)}" font-size="9" text-anchor="middle" fill="white" font-family="serif">⚽</text>
-    <!-- 最後動作時間 -->
-    ${last.min?`<rect x="${lx-14}" y="${ly-20}" width="28" height="12" rx="6" fill="rgba(0,0,0,0.65)"/><text x="${lx}" y="${ly-11}" font-size="9" text-anchor="middle" fill="${ballColor}" font-weight="bold" font-family="sans-serif">${last.min}'</text>`:''}
+    ${trailEls}
+    <circle id="ball-${id}" cx="${last.svgX.toFixed(1)}" cy="${last.svgY.toFixed(1)}" r="9" fill="${bc}" opacity="0.9" filter="url(#bglow-${id})"/>
+    <circle id="ball-ring-${id}" cx="${last.svgX.toFixed(1)}" cy="${last.svgY.toFixed(1)}" r="9" fill="none" stroke="white" stroke-width="1.8"/>
+    <text id="ball-ico-${id}" x="${last.svgX.toFixed(1)}" y="${(last.svgY+3.5).toFixed(1)}" font-size="9" text-anchor="middle" fill="white" font-family="serif">⚽</text>
+    ${timeBadge}
   </svg>`;
+}
+
+// ── 更新既有 SVG 的元素位置（setAttribute 觸發 CSS 過渡，不重建 DOM）──
+function updateRadarEl(matchId, plays, hCode, aCode){
+  const pts = computeRadarPts(plays, hCode, aCode);
+  const last = pts[0];
+  const id = matchId;
+  const bc = last.isHome?'#1a73e8':'#ff4d4d';
+  function sa(elId, attrs){
+    const el=document.getElementById(elId);
+    if(!el) return;
+    Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,String(v)));
+  }
+  // 主球
+  sa(`ball-${id}`, {cx:last.svgX.toFixed(1), cy:last.svgY.toFixed(1), fill:bc});
+  sa(`ball-ring-${id}`, {cx:last.svgX.toFixed(1), cy:last.svgY.toFixed(1)});
+  sa(`ball-ico-${id}`, {x:last.svgX.toFixed(1), y:(last.svgY+3.5).toFixed(1)});
+  // 時間標籤
+  if(last.min){
+    sa(`bg-el-${id}`, {x:(last.svgX-14).toFixed(1), y:(last.svgY-22).toFixed(1), width:'28', height:'12'});
+    const mel=document.getElementById(`ball-ico-min-${id}`);
+    if(mel){mel.setAttribute('x',last.svgX.toFixed(1));mel.setAttribute('y',(last.svgY-13).toFixed(1));mel.setAttribute('fill',bc);mel.textContent=last.min+"'";}
+  } else {
+    sa(`bg-el-${id}`, {x:'0', y:'0', width:'0', height:'0'});
+  }
+  // 軌跡
+  for(let i=0;i<7;i++){
+    const p=pts[i+1]||last;
+    const pr=pts[i]||last;
+    sa(`rt${i}-${id}`, {cx:p.svgX.toFixed(1), cy:p.svgY.toFixed(1)});
+    sa(`rl${i}-${id}`, {x1:p.svgX.toFixed(1), y1:p.svgY.toFixed(1), x2:pr.svgX.toFixed(1), y2:pr.svgY.toFixed(1)});
+  }
 }
 
 // ========== FILTER STATE ==========
@@ -1058,6 +1164,31 @@ function renderMatches(){
   document.getElementById('match-results').innerHTML=html;
 }
 
+// ── 將 md.stats 簡易格式轉換為 fullStats 段落格式 ──
+function statsObjToFull(s){
+  if(!s) return null;
+  function mk(name, hv, av, pct){
+    return {name, hv:hv||0, av:av||0, h:pct?(hv||0)+'%':String(hv||0), a:pct?(av||0)+'%':String(av||0), ...(pct?{total:100}:{})};
+  }
+  return {
+    attack:{label:'進攻',rows:[
+      mk('控球率',  s.possession?.[0], s.possession?.[1], true),
+      mk('射門',    s.shots?.[0],      s.shots?.[1]),
+      mk('射正',    s.sot?.[0],        s.sot?.[1]),
+      mk('角球',    s.corners?.[0],    s.corners?.[1]),
+      mk('關鍵傳球',s.keyPasses?.[0],  s.keyPasses?.[1]),
+    ].filter(r=>r.hv||r.av)},
+    pass:{label:'傳球',rows:[
+      mk('傳球成功率',s.passAcc?.[0], s.passAcc?.[1], true),
+    ].filter(r=>r.hv||r.av)},
+    defend:{label:'防守',rows:[
+      mk('犯規',    s.fouls?.[0],   s.fouls?.[1]),
+      mk('黃牌',    s.yellows?.[0], s.yellows?.[1]),
+      mk('制空爭頂',s.aerials?.[0], s.aerials?.[1]),
+    ].filter(r=>r.hv||r.av)},
+  };
+}
+
 // ========== MODAL ==========
 function openMatch(id){
   const all=buildAll();
@@ -1078,8 +1209,12 @@ function openMatch(id){
 
   // 評論來源：LIVE 優先
   const commentary = lv.commentary?.length ? lv.commentary : (md.commentary||[]);
-  // 事件來源：LIVE 優先
-  const events = lv.events?.length ? lv.events : (md.events||[]);
+  // 事件來源：LIVE→md.events→md.goals 依序 fallback
+  const rawEvts = lv.events?.length ? lv.events : (md.events?.length ? md.events : null);
+  const events = rawEvts || (md.goals||[]).map(g=>({
+    min:g.min||'', type:'goal', team:g.team||m.h, player:g.player||'',
+    assist:g.assist||'', detail:''
+  }));
 
   const hcc=T[m.h]?T[m.h][0]:'', acc=T[m.a]?T[m.a][0]:'';
 
@@ -1208,10 +1343,17 @@ function openMatch(id){
   RADAR_STATE[id] = {step:initStep, plays:allPlays, hCode:m.h, aCode:m.a};
   const initSlice = allPlays.slice(initStep, initStep+8);
   const initPlay  = allPlays[initStep]||{};
-  const pitchSvg  = buildPitchSVG(initSlice, m.h, m.a);
+  const pitchSvg  = buildPitchSVG(initSlice, m.h, m.a, id);
 
-  // 迷你統計（ESPN 取到的）
-  const miniStats = lv.stats||[];
+  // 迷你統計：LIVE ESPN → md.stats fallback
+  const miniStats = lv.stats?.length ? lv.stats : (md.stats ? [
+    {name:'控球率', h:(md.stats.possession?.[0]||0)+'%', a:(md.stats.possession?.[1]||0)+'%'},
+    {name:'射門',   h:String(md.stats.shots?.[0]||0),    a:String(md.stats.shots?.[1]||0)},
+    {name:'射正',   h:String(md.stats.sot?.[0]||0),      a:String(md.stats.sot?.[1]||0)},
+    {name:'角球',   h:String(md.stats.corners?.[0]||0),  a:String(md.stats.corners?.[1]||0)},
+    {name:'犯規',   h:String(md.stats.fouls?.[0]||0),    a:String(md.stats.fouls?.[1]||0)},
+    {name:'黃牌',   h:String(md.stats.yellows?.[0]||0),  a:String(md.stats.yellows?.[1]||0)},
+  ].filter(s=>s.h!=='0%'&&s.a!=='0%'||s.h!=='0'||s.a!=='0') : []);
   const miniStatsHtml = miniStats.length ? `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:10px">
       ${miniStats.map(s=>`
@@ -1290,6 +1432,15 @@ function openMatch(id){
     });
   } else if(md.fullStats){
     Object.values(md.fullStats).forEach(section=>{
+      tab2Html+=`<div style="margin-top:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase">${section.label}</div>
+        ${section.rows.map(r=>statRow(r)).join('')}
+      </div>`;
+    });
+  } else if(md.stats){
+    const converted=statsObjToFull(md.stats);
+    Object.values(converted).forEach(section=>{
+      if(!section.rows.length) return;
       tab2Html+=`<div style="margin-top:12px">
         <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase">${section.label}</div>
         ${section.rows.map(r=>statRow(r)).join('')}
@@ -1437,11 +1588,26 @@ function buildPredictions(){
     const tag=st==='ft'?'✅完場':st==='live'?'🔴直播':'📅即將';
     const tot=(p.xgh+p.xga)||1;
     const hcc=T[p.h]?T[p.h][0]:'',acc=T[p.a]?T[p.a][0]:'';
+    // 完場/直播時嘗試取真實比分
+    const r32m=R32.find(x=>x.h===p.h&&x.a===p.a);
+    const hasReal=(st==='ft'||st==='live')&&r32m&&r32m.hs!=null;
+    const dispScore=hasReal?`${r32m.hs}–${r32m.as}`:p.ps;
+    const scoreColor=hasReal?(st==='ft'?'var(--green)':'var(--red)'):'var(--gold)';
+    const confHtml=hasReal&&st==='ft'
+      ?`<span class="pred-conf" style="color:var(--green)">已完場</span>`
+      :`<span class="pred-conf">信心 ${p.conf}</span>`;
+    const subNote=hasReal
+      ?(st==='ft'?`<div style="font-size:9px;color:var(--text2);text-align:center;margin-top:2px">預測：${p.ps}</div>`
+                 :`<div style="font-size:9px;color:var(--red);text-align:center;margin-top:2px">🔴 即時比分</div>`)
+      :`<div style="font-size:9px;color:var(--text2);text-align:center;margin-top:2px">預測比分</div>`;
     return`<div class="pred-card">
-      <div class="pred-header"><span style="font-size:11px">${tag}</span><span class="pred-conf">信心 ${p.conf}</span></div>
+      <div class="pred-header"><span style="font-size:11px">${tag}</span>${confHtml}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:6px;flex:1">${fi(hcc,'fi-sm')}<strong>${zh(p.h)}</strong></div>
-        <div style="font-size:20px;font-weight:900;color:var(--gold);min-width:50px;text-align:center">${p.ps}</div>
+        <div style="text-align:center;min-width:50px">
+          <div style="font-size:20px;font-weight:900;color:${scoreColor}">${dispScore}</div>
+          ${subNote}
+        </div>
         <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end"><strong>${zh(p.a)}</strong>${fi(acc,'fi-sm')}</div>
       </div>
       <div style="margin-bottom:8px">
