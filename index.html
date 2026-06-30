@@ -8,17 +8,34 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --gold:#f5c842;--gold2:#e6a817;--green:#00c46a;--red:#ff4d4d;
-  --blue:#1a73e8;--dark:#0d1117;--dark2:#161b22;--dark3:#21262d;
-  --dark4:#30363d;--text:#e6edf3;--text2:#8b949e;--border:#30363d;
+  --blue:#3b82f6;--dark:#0a0d14;--dark2:#141922;--dark3:#1d2430;
+  --dark4:#2a3340;--text:#e6edf3;--text2:#8b96a8;--border:#283040;
+  --shadow:0 4px 20px rgba(0,0,0,.35);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.5);
+  --radius:14px;
 }
-body{background:var(--dark);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+body{
+  background:var(--dark);color:var(--text);
+  font-family:'Noto Sans TC','Segoe UI',system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+  background-image:
+    radial-gradient(1200px 600px at 50% -200px,rgba(124,58,237,.18),transparent 60%),
+    radial-gradient(900px 500px at 100% 0,rgba(245,200,66,.06),transparent 55%);
+  background-attachment:fixed;
+}
 a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--dark4);border-radius:6px;border:2px solid var(--dark)}
+::-webkit-scrollbar-thumb:hover{background:#3a4556}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* HEADER */
-header{background:linear-gradient(135deg,#1a0533 0%,#0d1117 60%);padding:16px 20px;border-bottom:1px solid var(--border)}
-.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+header{background:linear-gradient(135deg,rgba(45,12,82,.85) 0%,rgba(13,17,23,.7) 60%);padding:16px 20px;border-bottom:1px solid var(--border);backdrop-filter:blur(10px);position:relative}
+header::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.5}
+.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .logo{display:flex;align-items:center;gap:12px}
-.logo-ball{font-size:32px}
+.logo-ball{font-size:32px;filter:drop-shadow(0 2px 6px rgba(245,200,66,.4));animation:floatBall 3s ease-in-out infinite}
+@keyframes floatBall{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(12deg)}}
 .logo-text h1{font-size:22px;font-weight:800;background:linear-gradient(90deg,var(--gold),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .logo-text p{font-size:12px;color:var(--text2);margin-top:2px}
 .refresh-bar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2)}
@@ -41,11 +58,11 @@ header{background:linear-gradient(135deg,#1a0533 0%,#0d1117 60%);padding:16px 20
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* TABS */
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--dark2);position:sticky;top:0;z-index:50}
-.tab-btn{flex:1;padding:14px 8px;font-size:14px;font-weight:600;color:var(--text2);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;text-align:center}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:rgba(20,25,34,.85);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50}
+.tab-btn{flex:1;padding:14px 8px;font-size:14px;font-weight:600;color:var(--text2);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;text-align:center;position:relative}
 .tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
-.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(245,200,66,.06)}
-main{max-width:1100px;margin:0 auto;padding:16px}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(245,200,66,.08)}
+main{max-width:1100px;margin:0 auto;padding:16px;animation:fadeUp .4s ease}
 
 /* FLAG IMAGES */
 .fi{width:28px;height:21px;border-radius:3px;object-fit:cover;flex-shrink:0;display:inline-block;vertical-align:middle}
@@ -53,7 +70,7 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .fi-lg{width:48px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0}
 
 /* SEARCH / FILTER UI */
-.search-wrap{background:var(--dark2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+.search-wrap{background:linear-gradient(160deg,var(--dark2),rgba(20,25,34,.5));border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
 .search-input-row{display:flex;gap:8px;align-items:center;margin-bottom:12px}
 .search-input-row input{flex:1;background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;outline:none}
 .search-input-row input:focus{border-color:var(--gold)}
@@ -69,11 +86,13 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .result-count{font-size:12px;color:var(--text2);margin-bottom:10px}
 
 /* MATCH CARDS */
-.matches-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px;margin-bottom:8px}
-.mcard{background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
-.mcard:hover{border-color:var(--text2);transform:translateY(-1px)}
-.mcard.live-card{border-color:rgba(255,77,77,.5)}
-.mcard.live-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--red);animation:pulse 1s infinite}
+.matches-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-bottom:8px}
+.mcard{background:linear-gradient(160deg,var(--dark2),rgba(20,25,34,.6));border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;position:relative;overflow:hidden;animation:fadeUp .35s ease backwards}
+.mcard::after{content:'';position:absolute;inset:0;border-radius:var(--radius);background:radial-gradient(400px 120px at 50% -40px,rgba(245,200,66,.1),transparent 70%);opacity:0;transition:opacity .25s}
+.mcard:hover{border-color:rgba(245,200,66,.45);transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.mcard:hover::after{opacity:1}
+.mcard.live-card{border-color:rgba(255,77,77,.45)}
+.mcard.live-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--red),transparent);animation:pulse 1.2s infinite}
 .mcard-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .mcard-grp{font-size:11px;color:var(--text2)}
 .mcard-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
@@ -84,7 +103,7 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .mcard-teams{display:flex;align-items:center;gap:8px}
 .mcard-team{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;text-align:center}
 .mcard-tname{font-size:13px;font-weight:600;line-height:1.2}
-.mcard-score{font-size:26px;font-weight:900;min-width:60px;text-align:center;letter-spacing:2px}
+.mcard-score{font-size:26px;font-weight:900;min-width:60px;text-align:center;letter-spacing:2px;font-variant-numeric:tabular-nums}
 .mcard-score.confirmed{color:var(--gold)}
 .mcard-score.live-score{color:var(--red);animation:pulse 2s infinite}
 .mcard-score.preview{color:var(--text2);font-size:18px}
@@ -140,9 +159,10 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 .bracket-score{font-size:16px;font-weight:800;color:var(--gold)}
 
 /* MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(5,7,12,.78);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;padding:16px}
 .modal-bg.open{display:flex}
-.modal{background:var(--dark2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+.modal{background:linear-gradient(180deg,var(--dark2),var(--dark));border:1px solid var(--border);border-radius:18px;width:100%;max-width:600px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:modalIn .28s cubic-bezier(.2,.8,.25,1)}
+@keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 .modal-header{padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
 .modal-teams{display:flex;align-items:center;gap:12px}
 .modal-team{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:80px}
@@ -169,6 +189,26 @@ main{max-width:1100px;margin:0 auto;padding:16px}
 /* EMPTY STATE */
 .empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
 .empty-state .icon{font-size:48px;margin-bottom:12px}
+
+/* MODAL TABS POLISH */
+.mtab{transition:color .15s,background .15s}
+.mtab:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.mtab.active{background:rgba(245,200,66,.06)}
+
+/* RESPONSIVE */
+@media(max-width:560px){
+  .header-inner{gap:8px}
+  .logo-text h1{font-size:18px}
+  .refresh-bar{gap:8px}
+  .src-link{display:none}
+  .tab-btn{font-size:13px;padding:12px 4px}
+  main{padding:12px}
+  .matches-grid{grid-template-columns:1fr;gap:10px}
+  .modal-score{font-size:30px}
+  .modal-tname{font-size:13px}
+  .mtab{font-size:11px;padding:9px 4px}
+  .modal-team{min-width:64px}
+}
 </style>
 </head>
 <body>
@@ -614,6 +654,25 @@ const MD={
     xg:{h:5.8,a:0.3},
     analysis:'德國7-1狂轟庫拉索，哈維茨大四喜，展現驚人火力。但一週後竟被厄瓜多爆冷，令人唏噓。'
   },
+};
+
+// ========== MATCH PREDICTIONS（未開賽場次用，鍵為 matchId）==========
+// {h:主隊勝率%, d:平局率%, a:客隊勝率%, note:賽前分析}
+const PRED={
+  gerpry:{h:65,d:23,a:12,note:'德國雖遭厄瓜多爆冷，但淘汰賽心態重整；巴拉圭防守穩固，預期靠個人能力決勝。'},
+  nedmar:{h:42,d:30,a:28,note:'摩洛哥延續上屆強勢，荷蘭攻強守弱，雙方實力接近，可能拖入延長賽。'},
+  civnor:{h:20,d:22,a:58,note:'哈蘭德正值顛峰，挪威長傳衝吊對象牙海岸後防威脅極大。'},
+  fraswe:{h:76,d:16,a:8,note:'法國姆巴佩+格列茲曼雙核火力全開，瑞典伊薩克難破法國防線。'},
+  mexecu:{h:60,d:23,a:17,note:'厄瓜多剛爆冷德國士氣高昂，墨西哥本土作戰，兩隊勢均力敵。'},
+  engcod:{h:79,d:14,a:7,note:'凱恩、貝林厄姆、薩卡三叉戟對陣剛果防線佔絕對優勢。'},
+  belsen:{h:63,d:22,a:15,note:'盧卡庫小組3球，塞內加爾Diallo狀態同樣火熱，預期進球大戰。'},
+  usabih:{h:69,d:20,a:11,note:'美國坐擁主場優勢與球迷聲援，波黑需靠Džeko頂在前線搏命。'},
+  espaut:{h:74,d:17,a:9,note:'西班牙Yamal小組4球領銜，控球壓制力強；奧地利硬度足但火力不足。'},
+  porcro:{h:67,d:20,a:13,note:'C羅對決莫德里奇的世代之戰，葡萄牙陣容深度佔優。'},
+  suialg:{h:61,d:23,a:16,note:'瑞士整體性強，阿爾及利亞Mahrez小組5球為最大威脅。'},
+  ausegy:{h:55,d:25,a:20,note:'薩拉赫小組4球領軍埃及，澳洲體能與防守組織為勝負關鍵。'},
+  argcpv:{h:89,d:8,a:3,note:'衛冕冠軍阿根廷由梅西領銜，維德角實力差距明顯。'},
+  colgha:{h:66,d:21,a:13,note:'哥倫比亞Díaz狀態出色，迦納Kudus為唯一爆點。'},
 };
 
 // ========== ESPN LIVE CACHE ==========
@@ -1520,16 +1579,16 @@ const ESPN_TEAM={
   'France':'FRA','England':'ENG','Portugal':'POR','Netherlands':'NED',
   'United States':'USA','Morocco':'MAR','Senegal':'SEN','Ecuador':'ECU',
   'Turkey':'TUR','Croatia':'CRO','Uruguay':'URU','Saudi Arabia':'KSA',
-  'Australia':'AUS','Belgium':'BEL','Colombia':'COL','Switzerland':'SUI',
+  'Australia':'AUS','Belgium':'BEL','Colombia':'COL','Switzerland':'CHE',
   'South Korea':'KOR','Algeria':'ALG','Cameroon':'CMR','Serbia':'SRB',
   'Poland':'POL','Denmark':'DEN','Nigeria':'NGR','Ivory Coast':'CIV',
   "Cote d'Ivoire":'CIV','Chile':'CHI','Venezuela':'VEN','Bolivia':'BOL',
-  'Paraguay':'PAR','Peru':'PER','DR Congo':'COD','Tunisia':'TUN',
+  'Paraguay':'PRY','Peru':'PER','DR Congo':'COD','Tunisia':'TUN',
   'New Zealand':'NZL','Indonesia':'IDN','Thailand':'THA','Uzbekistan':'UZB',
   'Qatar':'QAT','Iran':'IRN','Austria':'AUT','Romania':'ROU',
   'Ukraine':'UKR','Bosnia & Herzegovina':'BIH','Bosnia and Herzegovina':'BIH',
   'Curacao':'CUW','Panama':'PAN','Honduras':'HON','Costa Rica':'CRC',
-  'Jamaica':'JAM','Haiti':'HAI','El Salvador':'SLV','Trinidad and Tobago':'TRI',
+  'Jamaica':'JAM','Haiti':'HTI','El Salvador':'SLV','Trinidad and Tobago':'TRI',
   'Cuba':'CUB','Guatemala':'GUA','Togo':'TOG','Benin':'BEN','Angola':'ANG',
   'Egypt':'EGY','Ghana':'GHA','Mali':'MLI','Congo':'CGO','Zambia':'ZAM',
   'Kenya':'KEN','Tanzania':'TAN','Iraq':'IRQ','Syria':'SYR','UAE':'UAE',
