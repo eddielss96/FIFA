@@ -302,9 +302,9 @@ main{max-width:1100px;margin:0 auto;padding:16px;animation:fadeUp .4s ease}
     <h2>🏆 冠軍預測</h2>
     <div class="champion-card">
       <div class="champion-crown">👑</div>
-      <div style="display:flex;justify-content:center;margin-bottom:8px"><img src="https://flagcdn.com/w80/fr.png" style="width:60px;height:45px;border-radius:6px"></div>
-      <div class="champion-name">法國</div>
-      <p style="font-size:13px;color:var(--text2);margin-top:8px">綜合模型預測冠軍（信心：68%）</p>
+      <div style="display:flex;justify-content:center;margin-bottom:8px"><img id="champ-flag" src="https://flagcdn.com/w80/fr.png" style="width:60px;height:45px;border-radius:6px"></div>
+      <div class="champion-name" id="champ-name">法國</div>
+      <p id="champ-desc" style="font-size:13px;color:var(--text2);margin-top:8px">綜合模型預測冠軍（信心：68%）</p>
       <div class="odds-row" id="odds-row"></div>
     </div>
     <p style="font-size:12px;color:var(--text2);line-height:1.7">
@@ -315,6 +315,11 @@ main{max-width:1100px;margin:0 auto;padding:16px;animation:fadeUp .4s ease}
   <div class="predict-section">
     <h2>🔮 32強預測</h2>
     <div class="pred-grid" id="pred-grid"></div>
+  </div>
+  <div class="predict-section" id="r16-section">
+    <h2>⚔️ 16強預測</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">依32強實際結果自動生成，隨比賽更新</p>
+    <div class="pred-grid" id="pred-grid-r16"></div>
   </div>
 </div>
 
@@ -497,6 +502,79 @@ const R32=[
   {id:'argcpv',h:'ARG',a:'CPV',hs:null,as:null,kickUTC:'2026-07-03T22:00:00Z',date:'Jul 4',venue:'芝加哥',note:'Messi 小組3球'},
   {id:'colgha',h:'COL',a:'GHA',hs:null,as:null,kickUTC:'2026-07-04T01:30:00Z',date:'Jul 4',venue:'波士頓',note:''},
 ];
+
+// ========== PREDICTION DATA ==========
+const PREDS_R32=[
+  {id:'canrsa',h:'ZAF',a:'CAN',ps:'1-3',conf:'61%',kickUTC:'2026-06-28T19:00:00Z',xgh:1.1,xga:2.3,pph:38,analysis:'加拿大David+Buchanan前場火力充足，南非防守承壓但本土氣氛助力。'},
+  {id:'brajpn',h:'BRA',a:'JPN',ps:'2-1',conf:'72%',kickUTC:'2026-06-29T17:00:00Z',xgh:2.2,xga:0.9,pph:68,analysis:'巴西小組賽穩健，Vinicius個人能力突出。日本善於反擊但面對巴西防線壓力大。'},
+  {id:'gerpry',h:'GER',a:'PRY',ps:'2-1',conf:'65%',kickUTC:'2026-06-29T20:30:00Z',xgh:1.8,xga:0.7,pph:62,analysis:'德國雖被爆冷但淘汰賽心態不同，巴拉圭防守穩健，預計靠個人能力決勝。'},
+  {id:'nedmar',h:'NED',a:'MAR',ps:'2-1',conf:'54%',kickUTC:'2026-06-30T01:00:00Z',xgh:1.5,xga:1.2,pph:54,analysis:'摩洛哥延續上屆8強氣勢，荷蘭進攻強但防守有漏洞。預計膠著激戰。'},
+  {id:'civnor',h:'CIV',a:'NOR',ps:'1-2',conf:'58%',kickUTC:'2026-06-30T17:00:00Z',xgh:1.1,xga:1.9,pph:44,analysis:'哈蘭德正處顛峰，挪威長傳衝吊打法對象牙海岸防線威脅極大。'},
+  {id:'fraswe',h:'FRA',a:'SWE',ps:'2-0',conf:'76%',kickUTC:'2026-06-30T21:00:00Z',xgh:2.4,xga:0.8,pph:71,analysis:'法國姆巴佩+格列茲曼雙核，瑞典伊薩克雖強但面對法國防線機會有限。'},
+  {id:'mexecu',h:'MEX',a:'ECU',ps:'2-1',conf:'60%',kickUTC:'2026-07-01T01:00:00Z',xgh:1.7,xga:1.3,pph:57,analysis:'厄瓜多剛爆冷德國，士氣旺盛。墨西哥本土作戰，兩隊實力接近，預計激烈。'},
+  {id:'engcod',h:'ENG',a:'COD',ps:'3-0',conf:'79%',kickUTC:'2026-07-01T16:00:00Z',xgh:2.6,xga:0.5,pph:74,analysis:'凱恩、貝林厄姆、薩卡三叉戟對陣剛果防線佔絕對優勢，英格蘭有望輕取。'},
+  {id:'belsen',h:'BEL',a:'SEN',ps:'2-1',conf:'63%',kickUTC:'2026-07-01T20:00:00Z',xgh:2.0,xga:1.1,pph:62,analysis:'盧卡庫小組3球，塞內加爾Diallo同樣高狀態，預計進球精彩的激烈對決。'},
+  {id:'usabih',h:'USA',a:'BIH',ps:'2-0',conf:'68%',kickUTC:'2026-07-02T00:00:00Z',xgh:1.9,xga:0.8,pph:65,analysis:'美國主場費城，波黑首次出線但淘汰賽缺乏經驗，美國強力主場支持下優勢明顯。'},
+  {id:'espaut',h:'ESP',a:'AUT',ps:'2-0',conf:'74%',kickUTC:'2026-07-02T19:00:00Z',xgh:2.3,xga:0.7,pph:72,analysis:'Yamal小組4球後狀態如日中天，西班牙傳控打法壓制奧地利反擊。'},
+  {id:'porcro',h:'POR',a:'CRO',ps:'2-1',conf:'61%',kickUTC:'2026-07-02T23:00:00Z',xgh:1.9,xga:1.4,pph:58,analysis:'CR7 vs Modrić世紀對決，葡萄牙Fernandes+Leão提供創造力，克羅埃西亞老將控球但體力難持。'},
+  {id:'suialg',h:'CHE',a:'ALG',ps:'1-2',conf:'55%',kickUTC:'2026-07-03T03:00:00Z',xgh:1.3,xga:1.8,pph:46,analysis:'Mahrez 5球大爆發延續勢頭，阿爾及利亞機動性克制瑞士體系，爆冷機率不低。'},
+  {id:'ausegy',h:'AUS',a:'EGY',ps:'0-2',conf:'64%',kickUTC:'2026-07-03T18:00:00Z',xgh:0.9,xga:2.1,pph:36,analysis:'Salah 4球後信心爆棚，埃及快攻反擊致命，澳洲防線難抵薩拉赫推進速度。'},
+  {id:'argcpv',h:'ARG',a:'CPV',ps:'3-0',conf:'88%',kickUTC:'2026-07-03T22:00:00Z',xgh:3.1,xga:0.4,pph:85,analysis:'Messi小組3球後打入狀態，維德角首次出線但面對阿根廷全陣容實力差距懸殊。'},
+  {id:'colgha',h:'COL',a:'GHA',ps:'2-1',conf:'62%',kickUTC:'2026-07-04T01:30:00Z',xgh:1.9,xga:1.2,pph:60,analysis:'哥倫比亞Diaz+Arias右路配合默契，迦納中前場活躍但防守不穩。'},
+];
+
+const TEAM_STR={
+  'FRA':94,'BRA':93,'ARG':92,'ENG':91,'ESP':90,'GER':89,'POR':87,'NED':86,
+  'BEL':84,'COL':80,'USA':79,'JPN':78,'NOR':77,'MEX':76,'MAR':76,'CHE':75,
+  'CRO':74,'AUT':74,'SEN':72,'ALG':72,'EGY':72,'ECU':70,'CIV':70,'SWE':69,
+  'AUS':67,'BIH':66,'PRY':65,'GHA':65,'CAN':68,'ZAF':63,'COD':62,'CPV':58,
+};
+
+const R16_BRACKET=[
+  {id:'r16a',m1:'canrsa',m2:'brajpn',date:'Jul 6',venue:'紐約'},
+  {id:'r16b',m1:'gerpry',m2:'nedmar',date:'Jul 6',venue:'休士頓'},
+  {id:'r16c',m1:'civnor',m2:'fraswe',date:'Jul 7',venue:'邁阿密'},
+  {id:'r16d',m1:'mexecu',m2:'engcod',date:'Jul 7',venue:'洛杉磯'},
+  {id:'r16e',m1:'belsen',m2:'usabih',date:'Jul 8',venue:'費城'},
+  {id:'r16f',m1:'espaut',m2:'porcro',date:'Jul 8',venue:'芝加哥'},
+  {id:'r16g',m1:'suialg',m2:'ausegy',date:'Jul 9',venue:'西雅圖'},
+  {id:'r16h',m1:'argcpv',m2:'colgha',date:'Jul 9',venue:'達拉斯'},
+];
+
+const R16_ANALYSIS={
+  'CAN-JPN':'加拿大依賴David定點進球，日本反擊組織精準，預計低比分膠著對決。',
+  'BRA-JPN':'巴西控球主導，日本Sano快攻威脅，巴西整體實力壓制。',
+  'BRA-ZAF':'南非奇兵過R32，但巴西全員壓上進攻難以長期抵擋。',
+  'CAN-ZAF':'加拿大速度vs南非防守反擊，David的門前嗅覺是勝負關鍵。',
+  'GER-NED':'德國vs荷蘭，技術高超中場控制節奏，預計1球之差分勝負。',
+  'GER-MAR':'Havertz vs 摩洛哥鐵閘，德國技術體系逐漸壓制集體防守。',
+  'NED-MAR':'摩洛哥防守反擊克制荷蘭控球，激烈膠著，不排除點球決勝。',
+  'PRY-NED':'巴拉圭低位收縮，荷蘭大量進攻創造，預計荷蘭數球勝。',
+  'NOR-FRA':'哈蘭德vs法國鐵閘，法國中場控制節奏並精準反攻致勝。',
+  'CIV-FRA':'象牙海岸技術差距明顯，法國職業效率取勝。',
+  'NOR-SWE':'北歐德比，哈蘭德vs伊薩克，高強度對抗，五五之數。',
+  'CIV-SWE':'象牙海岸右路速度vs瑞典整體組織，預計進球精彩。',
+  'MEX-ENG':'主場加持墨西哥全力一搏，Bellingham個人能力為勝負關鍵。',
+  'COD-ENG':'英格蘭Bellingham+薩卡壓制剛果防線，不出意外輕鬆晉級。',
+  'ECU-ENG':'厄瓜多帶著爆冷自信，但英格蘭前三線深度完全壓制。',
+  'MEX-COD':'墨西哥主場優勢明顯，剛果DR體力充沛但技術缺口大。',
+  'BEL-USA':'盧卡庫vs美國高位逼搶，普利西奇速度型反擊增加不確定性。',
+  'BEL-BIH':'比利時技術型打法，波黑首次出線難以抵擋整體實力差距。',
+  'SEN-USA':'Diallo前場爆發力對抗美國主場優勢，激烈五五開，點球亦有可能。',
+  'SEN-BIH':'塞內加爾身體與速度佔優，波黑中場難以組織有效進攻。',
+  'ESP-POR':'伊比利半島大戰！Yamal vs CR7，技術高超，預計1球分勝負。',
+  'AUT-POR':'奧地利積極逼搶，CR7決賽圈多次一腳定乾坤。',
+  'CRO-ESP':'西班牙傳控壓制克羅埃西亞，但莫德里奇老將偶爾控節奏。',
+  'AUT-CRO':'奧地利逼搶克羅埃西亞，風格相近，預計延長賽決勝。',
+  'ALG-AUS':'Mahrez超狀態持續，澳洲奮力但難壓制北非速度反擊。',
+  'ALG-EGY':'北非同源德比！Mahrez vs Salah，高強度強強對決，五五開。',
+  'CHE-AUS':'瑞士精準傳球體系，澳洲身體對抗補足技術差距但難逃淘汰。',
+  'CHE-EGY':'瑞士中場組織vs埃及快攻，Salah一腳決定性射門是勝負關鍵。',
+  'ARG-COL':'梅西vs強大對手，哥倫比亞Diaz衝擊力不容忽視，阿根廷整體更勝。',
+  'ARG-GHA':'阿根廷傳控碾壓，梅西+阿爾瓦雷斯主導，迦納奮力但難擋。',
+  'COL-CPV':'哥倫比亞整體更完整，維德角再度爆冷需要奇蹟。',
+  'CPV-GHA':'非洲+南美邊緣對決，兩隊均善用速度攻擊，預計激烈好看。',
+};
 
 // ========== MATCH DETAIL DATA ==========
 const MD={
@@ -1089,7 +1167,7 @@ function renderCard(m){
     scoreHtml=hasScore?`<div class="mcard-score live-score">${m.hs}–${m.as}</div>`:`<div class="mcard-score preview">VS</div>`;
   }else if(st==='ft'){
     statusHtml=`<span class="mcard-status status-ft">✅ 完場</span>`;
-    scoreHtml=hasScore?`<div class="mcard-score confirmed">${m.hs}–${m.as}</div>`:`<div class="mcard-score preview">–</div>`;
+    scoreHtml=hasScore?`<div class="mcard-score confirmed">${m.hs}–${m.as}</div>`:`<div class="mcard-score preview" style="font-size:11px;color:var(--text2)">同步中</div>`;
   }else{
     cardCls='mcard';
     statusHtml=`<span class="mcard-status status-soon">${m.date}</span>`;
@@ -1564,60 +1642,147 @@ function buildTicker(){
 }
 
 // ========== PREDICT TAB ==========
-function buildPredictions(){
-  // Odds chips
-  const odds=[['FRA','法國',22],['BRA','巴西',18],['ARG','阿根廷',16],['ESP','西班牙',14],['ENG','英格蘭',10],['GER','德國',8]];
-  document.getElementById('odds-row').innerHTML=odds.map(([c,_,p])=>`<div class="odds-chip">
-    <div class="odds-team">${tf(c,'fi-sm')} ${zh(c)}</div>
-    <div class="odds-pct">${p}%</div>
-  </div>`).join('')+`<div class="odds-chip"><div class="odds-team">其他</div><div class="odds-pct">12%</div></div>`;
+function r32Winner(mid){
+  const m=R32.find(x=>x.id===mid);
+  if(!m||m.hs==null)return null;
+  if(m.hs>m.as)return m.h;
+  if(m.as>m.hs)return m.a;
+  return null;
+}
 
-  const preds=[
-    {h:'BRA',a:'JPN',ps:'2-0',conf:'72%',kickUTC:'2026-06-29T17:00:00Z',xgh:2.2,xga:0.9,pph:68,analysis:'巴西小組賽穩健，Vinicius個人能力突出。日本善於反擊但面對巴西防線壓力大。'},
-    {h:'GER',a:'PRY',ps:'2-1',conf:'65%',kickUTC:'2026-06-29T20:30:00Z',xgh:1.8,xga:0.7,pph:62,analysis:'德國雖被爆冷但淘汰賽心態不同，巴拉圭防守穩健，預計靠個人能力決勝。'},
-    {h:'NED',a:'MAR',ps:'1-1',conf:'52%',kickUTC:'2026-06-30T01:00:00Z',xgh:1.5,xga:1.2,pph:54,analysis:'摩洛哥延續上屆8強氣勢，荷蘭進攻強但防守有漏洞。可能拖入延長賽。'},
-    {h:'CIV',a:'NOR',ps:'1-2',conf:'58%',kickUTC:'2026-06-30T17:00:00Z',xgh:1.1,xga:1.9,pph:44,analysis:'哈蘭德正處顛峰，挪威長傳衝吊打法對象牙海岸防線威脅極大。'},
-    {h:'FRA',a:'SWE',ps:'2-0',conf:'76%',kickUTC:'2026-06-30T21:00:00Z',xgh:2.4,xga:0.8,pph:71,analysis:'法國姆巴佩+格列茲曼雙核，瑞典伊薩克雖強但面對法國防線機會有限。'},
-    {h:'MEX',a:'ECU',ps:'2-1',conf:'60%',kickUTC:'2026-07-01T01:00:00Z',xgh:1.7,xga:1.3,pph:57,analysis:'厄瓜多剛爆冷德國，士氣旺盛。墨西哥本土作戰，兩隊實力接近，預計激烈。'},
-    {h:'ENG',a:'COD',ps:'3-0',conf:'79%',kickUTC:'2026-07-01T16:00:00Z',xgh:2.6,xga:0.5,pph:74,analysis:'凱恩、貝林厄姆、薩卡三叉戟對陣剛果防線佔絕對優勢，英格蘭有望輕取。'},
-    {h:'BEL',a:'SEN',ps:'2-1',conf:'63%',kickUTC:'2026-07-01T20:00:00Z',xgh:2.0,xga:1.1,pph:62,analysis:'盧卡庫小組3球，塞內加爾Diallo同樣高狀態，預計進球精彩的激烈對決。'},
-  ];
-  const grid=document.getElementById('pred-grid');
-  grid.innerHTML=preds.map(p=>{
-    const st=getMatchStatus(p.kickUTC);
-    const tag=st==='ft'?'✅完場':st==='live'?'🔴直播':'📅即將';
-    const tot=(p.xgh+p.xga)||1;
-    const hcc=T[p.h]?T[p.h][0]:'',acc=T[p.a]?T[p.a][0]:'';
-    // 完場/直播時嘗試取真實比分
-    const r32m=R32.find(x=>x.h===p.h&&x.a===p.a);
-    const hasReal=(st==='ft'||st==='live')&&r32m&&r32m.hs!=null;
-    const dispScore=hasReal?`${r32m.hs}–${r32m.as}`:p.ps;
-    const scoreColor=hasReal?(st==='ft'?'var(--green)':'var(--red)'):'var(--gold)';
-    const confHtml=hasReal&&st==='ft'
-      ?`<span class="pred-conf" style="color:var(--green)">已完場</span>`
-      :`<span class="pred-conf">信心 ${p.conf}</span>`;
-    const subNote=hasReal
-      ?(st==='ft'?`<div style="font-size:9px;color:var(--text2);text-align:center;margin-top:2px">預測：${p.ps}</div>`
-                 :`<div style="font-size:9px;color:var(--red);text-align:center;margin-top:2px">🔴 即時比分</div>`)
-      :`<div style="font-size:9px;color:var(--text2);text-align:center;margin-top:2px">預測比分</div>`;
-    return`<div class="pred-card">
-      <div class="pred-header"><span style="font-size:11px">${tag}</span>${confHtml}</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:6px;flex:1">${fi(hcc,'fi-sm')}<strong>${zh(p.h)}</strong></div>
-        <div style="text-align:center;min-width:50px">
-          <div style="font-size:20px;font-weight:900;color:${scoreColor}">${dispScore}</div>
-          ${subNote}
+function predCardHtml(p){
+  const st=getMatchStatus(p.kickUTC);
+  const tag=st==='ft'?'✅完場':st==='live'?'🔴直播':'📅即將';
+  const tot=(p.xgh+p.xga)||1;
+  const hcc=T[p.h]?T[p.h][0]:'',acc=T[p.a]?T[p.a][0]:'';
+  const r32m=R32.find(x=>x.id===p.id);
+  const hasReal=(st==='ft'||st==='live')&&r32m&&r32m.hs!=null;
+  const dispScore=hasReal?`${r32m.hs}–${r32m.as}`:p.ps;
+  const scoreColor=hasReal?(st==='ft'?'var(--green)':'var(--red)'):'var(--gold)';
+  const confHtml=hasReal&&st==='ft'
+    ?`<span class="pred-conf" style="color:var(--green)">已完場</span>`
+    :`<span class="pred-conf">信心 ${p.conf}</span>`;
+  const subNote=hasReal
+    ?(st==='ft'?`<div style="font-size:9px;color:var(--text2);text-align:center;margin-top:2px">預測：${p.ps}</div>`
+               :`<div style="font-size:9px;color:var(--red);text-align:center;margin-top:2px">🔴 即時比分</div>`)
+    :`<div style="font-size:9px;color:var(--text2);text-align:center;margin-top:2px">預測比分</div>`;
+  const winnerNote=(()=>{
+    if(!hasReal||st!=='ft'||!r32m)return'';
+    const w=r32m.hs>r32m.as?zh(r32m.h):r32m.as>r32m.hs?zh(r32m.a):'平局';
+    const wc=r32m.hs>r32m.as?r32m.h:r32m.a;
+    const upset=(wc===p.h&&p.pph<50)||(wc===p.a&&p.pph>50);
+    return`<div style="font-size:10px;text-align:center;margin-top:4px;color:${upset?'var(--red)':'var(--green)'}">${upset?'⚡ 爆冷！':'✅ 預測正確'} 晉級：${w}</div>`;
+  })();
+  return`<div class="pred-card">
+    <div class="pred-header"><span style="font-size:11px">${tag}</span>${confHtml}</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:6px;flex:1">${fi(hcc,'fi-sm')}<strong>${zh(p.h)}</strong></div>
+      <div style="text-align:center;min-width:50px">
+        <div style="font-size:20px;font-weight:900;color:${scoreColor}">${dispScore}</div>
+        ${subNote}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end"><strong>${zh(p.a)}</strong>${fi(acc,'fi-sm')}</div>
+    </div>
+    <div style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>xG ${p.xgh}</span><span>期望進球</span><span>${p.xga}</span></div>
+      <div style="height:6px;background:var(--dark3);border-radius:3px;overflow:hidden;display:flex">
+        <div style="width:${p.xgh/tot*100}%;background:var(--blue)"></div>
+        <div style="width:${p.xga/tot*100}%;background:var(--red)"></div>
+      </div>
+    </div>
+    ${winnerNote}
+    <div style="font-size:11px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">${p.analysis}</div>
+  </div>`;
+}
+
+function buildPredictions(){
+  // ── Champion: adjust for eliminated top teams ──
+  const basePow={FRA:22,BRA:18,ARG:16,ESP:14,ENG:10,GER:8};
+  const eliminated=new Set();
+  R32.forEach(m=>{
+    if(m.hs!=null){
+      if(m.hs>m.as)eliminated.add(m.a);
+      else if(m.as>m.hs)eliminated.add(m.h);
+    }
+  });
+  const surviving=Object.entries(basePow).filter(([c])=>!eliminated.has(c));
+  const totalPow=surviving.reduce((s,[,p])=>s+p,0)||88;
+  const normPow=surviving.map(([c,p])=>({c,p:Math.round(p/totalPow*100)}));
+  const champion=normPow[0]||{c:'FRA',p:22};
+  const champFlagMap={FRA:'fr',BRA:'br',ARG:'ar',ESP:'es',ENG:'gb-eng',GER:'de',POR:'pt',NED:'nl'};
+  const cFlag=champFlagMap[champion.c]||champion.c.toLowerCase();
+  document.getElementById('champ-flag').src=`https://flagcdn.com/w80/${cFlag}.png`;
+  document.getElementById('champ-name').textContent=zh(champion.c);
+  document.getElementById('champ-desc').textContent=`綜合模型預測冠軍（信心：${champion.p}%）`;
+  const otherPct=Math.max(0,100-normPow.slice(0,6).reduce((s,x)=>s+x.p,0));
+  document.getElementById('odds-row').innerHTML=
+    normPow.slice(0,6).map(x=>`<div class="odds-chip">
+      <div class="odds-team">${tf(x.c,'fi-sm')} ${zh(x.c)}</div>
+      <div class="odds-pct">${x.p}%</div>
+    </div>`).join('')+
+    `<div class="odds-chip"><div class="odds-team">其他</div><div class="odds-pct">${otherPct}%</div></div>`;
+
+  // ── R32 predictions (all 16) ──
+  document.getElementById('pred-grid').innerHTML=PREDS_R32.map(predCardHtml).join('');
+
+  // ── R16 predictions ──
+  const r16el=document.getElementById('pred-grid-r16');
+  const anyDone=R32.some(m=>m.hs!=null);
+  if(!anyDone){
+    r16el.innerHTML='<div style="color:var(--text2);font-size:13px;text-align:center;padding:24px">32強全部完賽後，16強預測將自動顯示</div>';
+    return;
+  }
+  r16el.innerHTML=R16_BRACKET.map(b=>{
+    const w1=r32Winner(b.m1),w2=r32Winner(b.m2);
+    const m1=R32.find(x=>x.id===b.m1),m2=R32.find(x=>x.id===b.m2);
+    const p1=PREDS_R32.find(x=>x.id===b.m1),p2=PREDS_R32.find(x=>x.id===b.m2);
+    if(!w1||!w2){
+      const pending=(mid,mx,px)=>{
+        if(!mx||mx.hs==null)return`待定：${zh(px?.h||'?')} vs ${zh(px?.a||'?')}`;
+        if(mx.hs>mx.as)return`✅ ${zh(mx.h)} 晉級`;
+        if(mx.as>mx.hs)return`✅ ${zh(mx.a)} 晉級`;
+        return`待定（加時/點球）：${zh(mx.h)} vs ${zh(mx.a)}`;
+      };
+      return`<div class="pred-card" style="opacity:.7">
+        <div class="pred-header"><span style="font-size:11px">📅 ${b.date}</span><span class="pred-conf">待定</span></div>
+        <div style="font-size:12px;color:var(--text2);line-height:2;text-align:center;padding:8px 0">
+          <div style="color:var(--text)">${pending(b.m1,m1,p1)}</div>
+          <div style="font-size:18px;color:var(--border)">⚔️</div>
+          <div style="color:var(--text)">${pending(b.m2,m2,p2)}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end"><strong>${zh(p.a)}</strong>${fi(acc,'fi-sm')}</div>
+        <div style="font-size:11px;color:var(--text2);border-top:1px solid var(--border);padding-top:8px;text-align:center">${b.venue}</div>
+      </div>`;
+    }
+    const key=[w1,w2].sort().join('-');
+    const analysis=R16_ANALYSIS[key]||`${zh(w1)} 與 ${zh(w2)} 的16強對決，雙方均從32強強勢出線。`;
+    const s1=TEAM_STR[w1]||70,s2=TEAM_STR[w2]||70;
+    const pph=Math.round(s1/(s1+s2)*100);
+    const fav=pph>=50?w1:w2;
+    const conf=Math.abs(pph-50)+50;
+    const hcc=T[w1]?T[w1][0]:'',acc=T[w2]?T[w2][0]:'';
+    const rawPs=pph>=60?'2-1':pph>=55?'1-0':'1-1';
+    const dispPs=pph>=50?rawPs:rawPs.split('-').reverse().join('-');
+    return`<div class="pred-card">
+      <div class="pred-header"><span style="font-size:11px">📅 ${b.date}</span><span class="pred-conf">信心 ${conf}%</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:6px;flex:1">${fi(hcc,'fi-sm')}<strong>${zh(w1)}</strong></div>
+        <div style="text-align:center;min-width:50px">
+          <div style="font-size:20px;font-weight:900;color:var(--gold)">${dispPs}</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px">預測比分</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end"><strong>${zh(w2)}</strong>${fi(acc,'fi-sm')}</div>
       </div>
       <div style="margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px"><span>xG ${p.xgh}</span><span>期望進球</span><span>${p.xga}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px">
+          <span>${pph}%</span><span>晉級率</span><span>${100-pph}%</span>
+        </div>
         <div style="height:6px;background:var(--dark3);border-radius:3px;overflow:hidden;display:flex">
-          <div style="width:${p.xgh/tot*100}%;background:var(--blue)"></div>
-          <div style="width:${p.xga/tot*100}%;background:var(--red)"></div>
+          <div style="width:${pph}%;background:var(--blue)"></div>
+          <div style="width:${100-pph}%;background:var(--red)"></div>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">${p.analysis}</div>
+      <div style="font-size:10px;color:var(--gold);margin-bottom:6px">🔮 預測晉級：${zh(fav)}</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">${analysis}</div>
     </div>`;
   }).join('');
 }
@@ -1769,12 +1934,9 @@ async function fetchLiveScores(){
   const el=document.getElementById('last-upd');
   el.textContent='⏳ 同步中...';
   let synced=0;
-  try{
-    // ── Part 1: Scoreboard（比分快覽）──
-    const url='https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
-    const res=await fetch(url,{signal:AbortSignal.timeout(8000)});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
+
+  // ── Part 1: Scoreboard（多日期取分，含歷史完場）──
+  function processScoreboard(data){
     (data.events||[]).forEach(ev=>{
       const comp=ev.competitions&&ev.competitions[0];
       if(!comp)return;
@@ -1789,17 +1951,39 @@ async function fetchLiveScores(){
       const isInProgress=st==='STATUS_IN_PROGRESS';
       if(isFinal||isInProgress){
         const hs=parseInt(home.score||0);
-        const as=parseInt(away.score||0);
+        const as_=parseInt(away.score||0);
         const m=R32.find(x=>(x.h===hCode&&x.a===aCode)||(x.h===aCode&&x.a===hCode));
         if(m){
-          if(m.h===hCode){m.hs=hs;m.as=as;}
-          else{m.hs=as;m.as=hs;}
+          if(m.h===hCode){m.hs=hs;m.as=as_;}
+          else{m.hs=as_;m.as=hs;}
           if(isInProgress){const min=comp.status?.displayClock||'';m.note=`🔴 ${min} 進行中`;}
+          if(!m.eid&&ev.id)m.eid=String(ev.id);
           synced++;
         }
       }
     });
-    lastFetchOk=true;
+  }
+
+  // 蒐集所有 R32 的 UTC 日期＋今天前後一天
+  const dateSet=new Set();
+  const nowMs=Date.now();
+  [-1,0,1].forEach(d=>{
+    const dt=new Date(nowMs+d*86400000);
+    dateSet.add(`${dt.getUTCFullYear()}${String(dt.getUTCMonth()+1).padStart(2,'0')}${String(dt.getUTCDate()).padStart(2,'0')}`);
+  });
+  R32.forEach(m=>{
+    const d=new Date(m.kickUTC);
+    dateSet.add(`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`);
+  });
+
+  try{
+    const results=await Promise.allSettled([...dateSet].map(async dateStr=>{
+      const url=`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`;
+      const res=await fetch(url,{signal:AbortSignal.timeout(8000)});
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      processScoreboard(await res.json());
+    }));
+    lastFetchOk=results.some(r=>r.status==='fulfilled');
   }catch(e){
     lastFetchOk=false;
     console.warn('[FIFA] ESPN Scoreboard 失敗:',e.message);
@@ -1946,6 +2130,7 @@ async function doRefresh(){
   await fetchLiveScores();
   renderMatches();
   buildTicker();
+  if(document.getElementById('tab-predict').style.display!=='none')buildPredictions();
 }
 
 function showToast(){
@@ -1960,7 +2145,7 @@ setInterval(tickRefresh,1000);
 // INIT
 buildTicker();
 renderMatches();
-fetchLiveScores().then(()=>{renderMatches();buildTicker();});
+fetchLiveScores().then(()=>{renderMatches();buildTicker();if(document.getElementById('tab-predict').style.display!=='none')buildPredictions();});
 </script>
 </body>
 </html>
