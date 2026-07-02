@@ -1308,7 +1308,7 @@ function openMatch(id){
       ${statusTag}
       <div style="display:flex;align-items:center;gap:14px">
         <div class="modal-team">${fi(hcc,'fi-lg')}<div class="modal-tname">${zh(m.h)}</div></div>
-        <div class="modal-score">${hasScore?scoreH+'–'+scoreA:'VS'}</div>
+        <div class="modal-score">${hasScore?scoreH+'–'+scoreA:isFT?'<span style="font-size:24px;color:var(--text2)">–</span>':'VS'}</div>
         <div class="modal-team">${fi(acc,'fi-lg')}<div class="modal-tname">${zh(m.a)}</div></div>
       </div>
     </div>`;
@@ -1341,11 +1341,19 @@ function openMatch(id){
             </div>`).join('')}
         </div>
         ${predHtml}
-        ${!hasScore?`<div style="background:var(--dark3);border-radius:10px;padding:14px;text-align:center;color:var(--text2);font-size:13px">
-          📅 比賽尚未開始，開賽後即時更新數據
-        </div>`:`<div style="background:var(--dark3);border-radius:10px;padding:14px;text-align:center;color:var(--text2);font-size:12px">
-          📊 詳細統計數據正在整理中
-        </div>`}
+        ${isFT&&!hasScore
+          ?`<div style="background:var(--dark3);border-radius:10px;padding:14px;text-align:center">
+              <div style="color:var(--text2);font-size:13px;margin-bottom:8px">📡 正在從 ESPN 同步最終比分</div>
+              <div style="font-size:11px;color:var(--text2);opacity:.7">如數據持續無法載入，比賽對陣可能與資料庫記錄不符</div>
+            </div>`
+          :!hasScore
+          ?`<div style="background:var(--dark3);border-radius:10px;padding:14px;text-align:center;color:var(--text2);font-size:13px">
+              📅 比賽尚未開始，開賽後即時更新數據
+            </div>`
+          :`<div style="background:var(--dark3);border-radius:10px;padding:14px;text-align:center;color:var(--text2);font-size:12px">
+              📊 詳細統計數據正在整理中
+            </div>`
+        }
       </div>`;
     document.getElementById('modal-bg').classList.add('open');return;
   }
@@ -1918,6 +1926,10 @@ const ESPN_TEAM={
   'New Zealand':'NZL','Indonesia':'IDN','Thailand':'THA','Uzbekistan':'UZB',
   'Qatar':'QAT','Iran':'IRN','Austria':'AUT','Romania':'ROU',
   'Ukraine':'UKR','Bosnia & Herzegovina':'BIH','Bosnia and Herzegovina':'BIH',
+  'Bosnia':'BIH','Bosnia-Herzegovina':'BIH','Bosnia-Hercegovina':'BIH',
+  'Congo DR':'COD','Congo, DR':'COD','Democratic Republic of Congo':'COD','Dem Republic of Congo':'COD',
+  'Cape Verde Islands':'CPV','Cabo Verde':'CPV','Ivory Coast':'CIV','Côte d\'Ivoire':'CIV',
+  'USA':'USA','US':'USA',
   'Curacao':'CUW','Panama':'PAN','Honduras':'HON','Costa Rica':'CRC',
   'Jamaica':'JAM','Haiti':'HTI','El Salvador':'SLV','Trinidad and Tobago':'TRI',
   'Cuba':'CUB','Guatemala':'GUA','Togo':'TOG','Benin':'BEN','Angola':'ANG',
@@ -1943,23 +1955,31 @@ async function fetchLiveScores(){
       const home=comp.competitors.find(c=>c.homeAway==='home');
       const away=comp.competitors.find(c=>c.homeAway==='away');
       if(!home||!away)return;
-      const hCode=ESPN_TEAM[home.team.displayName]||ESPN_TEAM[home.team.shortDisplayName];
-      const aCode=ESPN_TEAM[away.team.displayName]||ESPN_TEAM[away.team.shortDisplayName];
-      if(!hCode||!aCode)return;
       const st=comp.status?.type?.name||'';
       const isFinal=st==='STATUS_FINAL';
       const isInProgress=st==='STATUS_IN_PROGRESS';
-      if(isFinal||isInProgress){
-        const hs=parseInt(home.score||0);
-        const as_=parseInt(away.score||0);
-        const m=R32.find(x=>(x.h===hCode&&x.a===aCode)||(x.h===aCode&&x.a===hCode));
-        if(m){
-          if(m.h===hCode){m.hs=hs;m.as=as_;}
-          else{m.hs=as_;m.as=hs;}
-          if(isInProgress){const min=comp.status?.displayClock||'';m.note=`🔴 ${min} 進行中`;}
-          if(!m.eid&&ev.id)m.eid=String(ev.id);
-          synced++;
-        }
+      if(!isFinal&&!isInProgress)return;
+      const hs=parseInt(home.score||0);
+      const as_=parseInt(away.score||0);
+      // 1st try: match by team codes
+      const hCode=ESPN_TEAM[home.team.displayName]||ESPN_TEAM[home.team.shortDisplayName]||ESPN_TEAM[home.team.abbreviation];
+      const aCode=ESPN_TEAM[away.team.displayName]||ESPN_TEAM[away.team.shortDisplayName]||ESPN_TEAM[away.team.abbreviation];
+      let m=null;
+      if(hCode&&aCode){
+        m=R32.find(x=>(x.h===hCode&&x.a===aCode)||(x.h===aCode&&x.a===hCode));
+      }
+      // 2nd try: match by kickoff time proximity (within 90 min of any R32 entry with no score yet)
+      if(!m&&ev.date){
+        const evMs=new Date(ev.date).getTime();
+        m=R32.find(x=>x.hs==null&&Math.abs(new Date(x.kickUTC).getTime()-evMs)<90*60*1000);
+      }
+      if(m){
+        const actualHome=hCode&&m.h===hCode?true:hCode&&m.a===hCode?false:true;
+        if(actualHome){m.hs=hs;m.as=as_;}
+        else{m.hs=as_;m.as=hs;}
+        if(isInProgress){const min=comp.status?.displayClock||'';m.note=`🔴 ${min} 進行中`;}
+        if(!m.eid&&ev.id)m.eid=String(ev.id);
+        synced++;
       }
     });
   }
