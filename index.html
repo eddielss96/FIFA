@@ -767,7 +767,6 @@ let LIVE = {}; // keyed by matchId: {hs,as,state,minute,events,commentary,espnSt
 // ========== 英文→繁體中文 評論翻譯 ==========
 function cnComm(text){
   if(!text) return text;
-  // 英文位置輔助翻譯（用於 wins a free kick 等短語）
   function trPos(pos){
     const p=(pos||'').toLowerCase().trim();
     if(/right wing|right flank|right side/.test(p))return'右路';
@@ -778,7 +777,6 @@ function cnComm(text){
     if(/own half/.test(p))return'己方半場';
     return pos.trim();
   }
-  // 括號內隊名對照（英→中）
   const TZ={
     'Brazil':'巴西','Japan':'日本','Canada':'加拿大','South Africa':'南非',
     'Argentina':'阿根廷','Mexico':'墨西哥','Germany':'德國','Spain':'西班牙',
@@ -786,113 +784,126 @@ function cnComm(text){
     'United States':'美國','USA':'美國','Morocco':'摩洛哥','Senegal':'塞內加爾',
     'Ecuador':'厄瓜多','Turkey':'土耳其','Croatia':'克羅埃西亞','Australia':'澳洲',
     'Belgium':'比利時','Colombia':'哥倫比亞','Switzerland':'瑞士','Algeria':'阿爾及利亞',
-    'Norway':'挪威','Ivory Coast':'象牙海岸','Egypt':'埃及','Ghana':'迦納',
-    'Paraguay':'巴拉圭','DR Congo':'剛果民主共和國','Bosnia':'波黑','Austria':'奧地利',
-    'Sweden':'瑞典','Cape Verde':'維德角',
+    'Norway':'挪威','Ivory Coast':'象牙海岸',"Côte d'Ivoire":'象牙海岸',
+    'Egypt':'埃及','Ghana':'迦納','Paraguay':'巴拉圭','DR Congo':'剛果民主共和國',
+    'Bosnia':'波黑','Bosnia and Herzegovina':'波黑','Austria':'奧地利',
+    'Sweden':'瑞典','Cape Verde':'維德角','Cape Verde Islands':'維德角',
   };
   return text
-    // 括號隊名
-    .replace(/\(([A-Z][a-zA-Z\s]+)\)/g,(m,n)=>TZ[n.trim()]?`(${TZ[n.trim()]})`:m)
-    // 結構化短語（先匹配再做簡單替換）
+    // ── 0. 比賽延誤（必須最先，否則 Delay 裡的關鍵詞被其他規則提前吃掉）
+    .replace(/Delay in match because of an injury ([^.]+)\./gi,'因$1受傷暫停。')
+    .replace(/Delay in match for a drinks? break\.?/gi,'飲水休息暫停。')
+    .replace(/Delay in match\./gi,'比賽延誤。')
+    .replace(/Delay over\. They are ready to continue\./gi,'延誤結束，比賽繼續。')
+    .replace(/Delay over\./gi,'延誤結束。')
+    // ── 1. 括號內隊名（保持括號）
+    .replace(/\(([A-Z][a-zA-Z\s']+)\)/g,(m,n)=>TZ[n.trim()]?`(${TZ[n.trim()]})`:m)
+    // ── 2. 角球通報（"Corner, Switzerland."）必須在 corner→角球 之前
+    .replace(/Corner, ([^.,]+)\./gi,(_,team)=>`角球 - ${TZ[team.trim()]||team.trim()}。`)
+    // ── 3. is saved/blocked/missed in position（多字短語，必須在單字替換前）
+    .replace(/is saved in the bottom right(?: corner)?/gi,'被撲出（右下角）')
+    .replace(/is saved in the bottom left(?: corner)?/gi,'被撲出（左下角）')
+    .replace(/is saved in the top right(?: corner)?/gi,'被撲出（右上角）')
+    .replace(/is saved in the top left(?: corner)?/gi,'被撲出（左上角）')
+    .replace(/is saved in the centre(?: of the goal)?/gi,'被撲出（正中）')
+    .replace(/is saved\b/gi,'被撲出')
+    .replace(/is blocked\b/gi,'被封鎖')
+    .replace(/is cleared\b/gi,'被解圍')
+    .replace(/is closed down\b/gi,'被緊迫')
+    .replace(/is wide\b/gi,'射偏門框')
+    // ── 4. 落點位置（複合詞，在 corner/top/bottom 單字前）
+    .replace(/in the bottom right(?: corner)?\b/gi,'（右下角）')
+    .replace(/in the bottom left(?: corner)?\b/gi,'（左下角）')
+    .replace(/in the top right(?: corner)?\b/gi,'（右上角）')
+    .replace(/in the top left(?: corner)?\b/gi,'（左上角）')
+    .replace(/in the centre of the (?:goal|box)\b/gi,'（正中）')
+    .replace(/in the cent(?:re|er) of the box\b/gi,'禁區中央')
+    // ── 5. 射門結構短語
     .replace(/Attempt saved\./gi,'射門被撲出。')
     .replace(/Attempt blocked\./gi,'射門被封堵。')
     .replace(/Attempt missed\./gi,'射門偏出。')
+    .replace(/misses to the right\b/gi,'射偏右').replace(/misses to the left\b/gi,'射偏左')
+    .replace(/misses to the top\b/gi,'高射偏出').replace(/misses wide[^.]*\b/gi,'射偏門框')
+    .replace(/misses high[^.]*\b/gi,'高射偏出').replace(/\bmisses\b/gi,'射偏')
     .replace(/Foul by ([^.,!]+)/gi,(_,p)=>`${p.trim()} 犯規`)
     .replace(/wins a free kick (?:in|on) the ([^.,!]+)/gi,(_,pos)=>`在${trPos(pos)}獲得任意球`)
     .replace(/wins a free kick/gi,'獲得任意球')
-    .replace(/right footed shot/gi,'右腳射門')
-    .replace(/left footed shot/gi,'左腳射門')
+    .replace(/right footed shot/gi,'右腳射門').replace(/left footed shot/gi,'左腳射門')
     .replace(/Assisted by ([^.,!]+)/gi,(_,p)=>`助攻：${p.trim()}`)
+    .replace(/Conceded by ([^.,!]+)/gi,(_,p)=>`${p.trim()} 造成失球`)
     .replace(/following a corner/gi,'（角球配合）')
     .replace(/following a fast break/gi,'（快速反攻）')
     .replace(/following a counter[- ]?attack/gi,'（反擊）')
     .replace(/from (?:the )?very close range/gi,'近距離')
     .replace(/from (?:the )?cent(?:re|er) of the box/gi,'禁區中央')
-    .replace(/from outside(?: the)? box/gi,'禁區外')
+    .replace(/from (?:outside|out(?: of)?) (?:the )?box/gi,'禁區外')
     .replace(/from (?:the )?right side of the box/gi,'禁區右側')
     .replace(/from (?:the )?left side of the box/gi,'禁區左側')
-    .replace(/from (?:the )?six.yard box/gi,'小禁區')
+    .replace(/from (?:the )?six.?yard box/gi,'小禁區')
+    .replace(/from inside (?:the )?box\b/gi,'禁區內')
     .replace(/Dangerous ball into the box/gi,'危險傳球入禁區')
-    .replace(/Conceded by ([^.,!]+)/gi,(_,p)=>`${p.trim()} 造成失球`)
-    // 重要事件
-    .replace(/\bGoal[!！]?\s*/gi,'⚽ 進球！')
-    .replace(/\bSave[!！]?\s*/gi,'撲救！')
-    .replace(/\bFoul\b/gi,'犯規')
-    .replace(/\bPenalty[!！]?\s*/gi,'⚽ 點球得分！')
+    // ── 6. 重要事件（單字，注意 saved/blocked 已在上方處理）
+    .replace(/\bGoal\b[!！]*/gi,'⚽ 進球！')
+    .replace(/\bPenalty\b[!！]+/gi,'⚽ 點球得分！')
     .replace(/\bOwn [Gg]oal\b/gi,'烏龍球')
-    .replace(/\bVAR [Rr]eview\b/gi,'VAR 複審')
-    .replace(/\bOffside\b/gi,'越位')
-    // 比賽階段
-    .replace(/\bKick[\s-]?off\b/gi,'開球')
-    .replace(/\bHalf[\s-]?time\b/gi,'半場結束')
-    .replace(/\bFull[\s-]?time\b/gi,'比賽結束')
-    .replace(/\bInjury[\s-]?time\b/gi,'補時')
-    .replace(/\bExtra[\s-]?time\b/gi,'延長賽')
-    .replace(/\bPenalty [Ss]hootout\b/gi,'點球大戰')
-    .replace(/\bAdded time\b/gi,'補時')
-    // 牌
-    .replace(/\bYellow [Cc]ard\b/gi,'🟨 黃牌')
-    .replace(/\bRed [Cc]ard\b/gi,'🟥 紅牌')
-    .replace(/\bbooking\b/gi,'出示警告牌')
-    .replace(/\bdismissal\b/gi,'紅牌離場')
-    // 人員
-    .replace(/\b[Ss]ubstitut\w*\b/g,'換人')
-    .replace(/\b[Gg]oalkeeper\b/gi,'門將')
-    .replace(/\b[Dd]efender\b/gi,'後衛')
-    .replace(/\b[Mm]idfielder\b/gi,'中場')
-    .replace(/\b[Ff]orward\b/gi,'前鋒')
-    .replace(/\b[Ss]triker\b/gi,'前鋒')
-    .replace(/\b[Ww]inger\b/gi,'邊鋒')
-    // 射門相關
-    .replace(/\bvolley\b/gi,'凌空抽射')
-    .replace(/\bcurling shot\b/gi,'弧線球')
-    .replace(/\blow drive\b/gi,'低射')
-    .replace(/\brifle\b/gi,'勁射')
-    .replace(/\b[Hh]eader\b/gi,'頭球')
-    .replace(/\b[Ss]hot\b/gi,'射門')
+    .replace(/\bVAR [Rr]eview\b/gi,'VAR 複審').replace(/\bVAR check\b/gi,'VAR 複審')
+    .replace(/\bOffside\b/gi,'越位').replace(/\bFoul\b/gi,'犯規')
+    .replace(/\b[Ss]aved\b/gi,'被撲出').replace(/\b[Ss]ave\b/gi,'撲救')
     .replace(/\bblocked\b/gi,'被封鎖')
-    .replace(/\bgoes close\b/gi,'險些破門')
-    .replace(/\bnear post\b/gi,'近角')
-    .replace(/\bfar post\b/gi,'遠角')
-    .replace(/\btop corner\b/gi,'上角')
+    // ── 7. 比賽階段
+    .replace(/\bKick[\s-]?off\b/gi,'開球').replace(/\bHalf[\s-]?time\b/gi,'半場結束')
+    .replace(/\bFull[\s-]?time\b/gi,'比賽結束').replace(/\bInjury[\s-]?time\b/gi,'補時')
+    .replace(/\bExtra[\s-]?time\b/gi,'延長賽').replace(/\bPenalty [Ss]hootout\b/gi,'點球大戰')
+    .replace(/\bAdded time\b/gi,'補時').replace(/\bstoppage time\b/gi,'補時')
+    .replace(/\bfirst half\b/gi,'上半場').replace(/\bsecond half\b/gi,'下半場')
+    // ── 8. 牌
+    .replace(/\bYellow [Cc]ard\b/gi,'🟨 黃牌').replace(/\bRed [Cc]ard\b/gi,'🟥 紅牌')
+    .replace(/\bbooking\b/gi,'出示警告牌').replace(/\bdismissal\b/gi,'紅牌離場')
+    // ── 9. 人員
+    .replace(/\b[Ss]ubstitut\w*\b/g,'換人').replace(/\b[Gg]oalkeeper\b/gi,'門將')
+    .replace(/\b[Dd]efender\b/gi,'後衛').replace(/\b[Mm]idfielder\b/gi,'中場')
+    .replace(/\b[Ff]orward\b/gi,'前鋒').replace(/\b[Ss]triker\b/gi,'前鋒').replace(/\b[Ww]inger\b/gi,'邊鋒')
+    // ── 10. 射門相關
+    .replace(/\bvolley\b/gi,'凌空抽射').replace(/\bcurling shot\b/gi,'弧線球')
+    .replace(/\blow drive\b/gi,'低射').replace(/\brifle\b/gi,'勁射')
+    .replace(/\b[Hh]eader\b/gi,'頭球').replace(/\b[Ss]hot\b/gi,'射門')
+    .replace(/\bgoes close\b/gi,'險些破門').replace(/\bnear post\b/gi,'近柱')
+    .replace(/\bfar post\b/gi,'遠柱').replace(/\btop corner\b/gi,'上角')
     .replace(/\bbottom.?corner\b/gi,'下角')
-    .replace(/\bout(side)? of the box\b/gi,'禁區外')
-    .replace(/\binside the box\b/gi,'禁區內')
-    .replace(/\bthe box\b/gi,'禁區')
-    .replace(/\bsix.yard box\b/gi,'小禁區')
-    .replace(/\bpenalty spot\b/gi,'點球點')
-    .replace(/\bpenalty area\b/gi,'禁區')
-    // 傳球/進攻
-    .replace(/\b[Cc]ross\b/gi,'傳中')
-    .replace(/\b[Cc]orner[\s-]?kick\b/gi,'角球')
-    .replace(/\b[Cc]orner\b/gi,'角球')
-    .replace(/\bfree.?kick\b/gi,'任意球')
-    .replace(/\b[Pp]ass\b/gi,'傳球')
-    .replace(/\b[Cc]ounterattack\b/gi,'反擊')
-    .replace(/\bpossession\b/gi,'控球')
-    // 防守
-    .replace(/\b[Cc]learance\b/gi,'解圍')
-    .replace(/\b[Tt]ackle\b/gi,'搶斷')
-    .replace(/\b[Ii]nterception\b/gi,'攔截')
-    // 結果描述
-    .replace(/\bopens the scoring\b/gi,'率先破門')
-    .replace(/\bdoubles the lead\b/gi,'擴大領先至兩球')
-    .replace(/\bequali[sz]e?s?\b/gi,'扳平')
-    .replace(/\breduces the deficit\b/gi,'追近一球')
-    .replace(/\bgoes ahead\b/gi,'反超')
-    .replace(/\btakes the lead\b/gi,'取得領先')
-    // 位置
+    .replace(/\b(?:out(?:side)? of|outside) (?:the )?box\b/gi,'禁區外')
+    .replace(/\binside (?:the )?box\b/gi,'禁區內').replace(/\bthe box\b/gi,'禁區')
+    .replace(/\bsix.?yard box\b/gi,'小禁區').replace(/\bpenalty spot\b/gi,'點球點')
+    .replace(/\bpenalty (?:area|box)\b/gi,'禁區').replace(/\bgoal area\b/gi,'門前')
+    .replace(/\bgreat (?:save|stop)\b/gi,'精彩撲救').replace(/\bgood save\b/gi,'精彩撲救')
+    .replace(/\bfine save\b/gi,'精彩撲救').replace(/\bGoalmouth scramble\b/gi,'門前混戰')
+    .replace(/\bgood chance\b/gi,'良機').replace(/\bgreat chance\b/gi,'絕佳機會')
+    .replace(/\bwasted chance\b/gi,'浪費機會').replace(/\bnarrow angle\b/gi,'刁鑽角度')
+    // ── 11. 傳球/進攻
+    .replace(/\b[Cc]ross\b/gi,'傳中').replace(/\b[Cc]orner[\s-]?kick\b/gi,'角球')
+    .replace(/\b[Cc]orner\b/gi,'角球').replace(/\bfree.?kick\b/gi,'任意球')
+    .replace(/\b[Pp]ass\b/gi,'傳球').replace(/\b[Cc]ounterattack\b/gi,'反擊')
+    .replace(/\bpossession\b/gi,'控球').replace(/\bpenalty\b/gi,'點球')
+    // ── 12. 防守
+    .replace(/\b[Cc]learance\b/gi,'解圍').replace(/\b[Tt]ackle\b/gi,'搶斷')
+    .replace(/\b[Ii]nterception\b/gi,'攔截').replace(/\b[Hh]and ball\b/gi,'手球')
+    // ── 13. 結果描述
+    .replace(/\bopens the scoring\b/gi,'率先破門').replace(/\bdoubles the lead\b/gi,'擴大領先至兩球')
+    .replace(/\bequali[sz]e?s?\b/gi,'扳平').replace(/\breduces the deficit\b/gi,'追近一球')
+    .replace(/\bgoes ahead\b/gi,'反超').replace(/\btakes the lead\b/gi,'取得領先')
+    .replace(/\bPenalty awarded\b/gi,'判罰點球').replace(/\bNo penalty\b/gi,'VAR判無點球')
+    // ── 14. 位置
     .replace(/\bright wing\b/gi,'右路').replace(/\bleft wing\b/gi,'左路')
     .replace(/\bright flank\b/gi,'右側').replace(/\bleft flank\b/gi,'左側')
     .replace(/\battacking half\b/gi,'前場').replace(/\bdefensive half\b/gi,'後場')
-    .replace(/\bown half\b/gi,'己方半場')
-    // 其他
-    .replace(/\bgreat save\b/gi,'精彩撲救').replace(/\bhand ball\b/gi,'手球')
+    .replace(/\bown half\b/gi,'己方半場').replace(/\bopponent.?s half\b/gi,'對方半場')
+    .replace(/\bon target\b/gi,'射正').replace(/\boff target\b/gi,'射偏')
+    // ── 15. 動詞短語（放最後，避免誤匹配）
     .replace(/\bstops play\b/gi,'哨聲暫停').replace(/\bWAR\b/g,'VAR')
-    .replace(/\b(\w+) fires\b/gi,'$1 射門').replace(/\b(\w+) strikes\b/gi,'$1 射門')
+    .replace(/\b(\w+) fires\b/gi,'$1 射門').replace(/\b(\w+) strikes\b/gi,'$1 勁射')
     .replace(/\b(\w+) curls\b/gi,'$1 弧線射門').replace(/\b(\w+) volleys\b/gi,'$1 凌空抽射')
     .replace(/\b(\w+) heads\b/gi,'$1 頭球').replace(/\b(\w+) saves\b/gi,'$1 撲救')
-    .replace(/\b(\w+) clears\b/gi,'$1 解圍').replace(/\b(\w+) blocks\b/gi,'$1 封堵');
+    .replace(/\b(\w+) clears\b/gi,'$1 解圍').replace(/\b(\w+) blocks\b/gi,'$1 封堵')
+    .replace(/\b(\w+) latches on\b/gi,'$1 接應').replace(/\b(\w+) who was fouled\b/gi,'$1（被犯規）');
 }
 
 // ========== RADAR REPLAY STATE ==========
@@ -1930,6 +1941,14 @@ const ESPN_TEAM={
   'Congo DR':'COD','Congo, DR':'COD','Democratic Republic of Congo':'COD','Dem Republic of Congo':'COD',
   'Cape Verde Islands':'CPV','Cabo Verde':'CPV','Ivory Coast':'CIV','Côte d\'Ivoire':'CIV',
   'USA':'USA','US':'USA',
+  // ESPN abbreviation aliases (ESPN code → our R32 code, for when display name matching fails)
+  'PAR':'PRY','HOL':'NED','IVC':'CIV','SWI':'CHE','ALG':'ALG','ZAF':'ZAF',
+  'CAN':'CAN','BRA':'BRA','JPN':'JPN','GER':'GER','ESP':'ESP','FRA':'FRA',
+  'ENG':'ENG','POR':'POR','NED':'NED','USA':'USA','MAR':'MAR','SEN':'SEN',
+  'ECU':'ECU','CRO':'CRO','AUS':'AUS','BEL':'BEL','COL':'COL','CHE':'CHE',
+  'ALG':'ALG','NOR':'NOR','CIV':'CIV','EGY':'EGY','GHA':'GHA','PRY':'PRY',
+  'COD':'COD','DRC':'COD','CGO':'COD','BIH':'BIH','AUT':'AUT','SWE':'SWE',
+  'CPV':'CPV','ARG':'ARG','MEX':'MEX','URU':'URU',
   'Curacao':'CUW','Panama':'PAN','Honduras':'HON','Costa Rica':'CRC',
   'Jamaica':'JAM','Haiti':'HTI','El Salvador':'SLV','Trinidad and Tobago':'TRI',
   'Cuba':'CUB','Guatemala':'GUA','Togo':'TOG','Benin':'BEN','Angola':'ANG',
@@ -1961,17 +1980,27 @@ async function fetchLiveScores(){
       if(!isFinal&&!isInProgress)return;
       const hs=parseInt(home.score||0);
       const as_=parseInt(away.score||0);
-      // 1st try: match by team codes
-      const hCode=ESPN_TEAM[home.team.displayName]||ESPN_TEAM[home.team.shortDisplayName]||ESPN_TEAM[home.team.abbreviation];
-      const aCode=ESPN_TEAM[away.team.displayName]||ESPN_TEAM[away.team.shortDisplayName]||ESPN_TEAM[away.team.abbreviation];
+      // 1st try: match by team codes (display name → mapped code, OR ESPN abbreviation directly in R32)
+      const abbH=home.team.abbreviation||'';
+      const abbA=away.team.abbreviation||'';
+      const hCode=ESPN_TEAM[home.team.displayName]||ESPN_TEAM[home.team.shortDisplayName]||ESPN_TEAM[abbH]
+                 ||(R32.some(x=>x.h===abbH||x.a===abbH)?abbH:'');
+      const aCode=ESPN_TEAM[away.team.displayName]||ESPN_TEAM[away.team.shortDisplayName]||ESPN_TEAM[abbA]
+                 ||(R32.some(x=>x.h===abbA||x.a===abbA)?abbA:'');
       let m=null;
       if(hCode&&aCode){
         m=R32.find(x=>(x.h===hCode&&x.a===aCode)||(x.h===aCode&&x.a===hCode));
       }
-      // 2nd try: match by kickoff time proximity (within 90 min of any R32 entry with no score yet)
+      // 2nd try: match by kickoff time proximity (4-hour window, closest unscored entry wins)
       if(!m&&ev.date){
         const evMs=new Date(ev.date).getTime();
-        m=R32.find(x=>x.hs==null&&Math.abs(new Date(x.kickUTC).getTime()-evMs)<90*60*1000);
+        if(!isNaN(evMs)){
+          const best=R32
+            .map(x=>({x,diff:Math.abs(new Date(x.kickUTC).getTime()-evMs)}))
+            .filter(({diff})=>diff<4*60*60*1000)
+            .sort((a,b)=>(a.x.hs==null?0:1)-(b.x.hs==null?0:1)||a.diff-b.diff)[0];
+          if(best)m=best.x;
+        }
       }
       if(m){
         const actualHome=hCode&&m.h===hCode?true:hCode&&m.a===hCode?false:true;
