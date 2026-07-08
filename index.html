@@ -798,8 +798,18 @@ function cnComm(text){
     .replace(/Delay over\./gi,'延誤結束。')
     // ── 1. 括號內隊名（保持括號）
     .replace(/\(([A-Z][a-zA-Z\s']+)\)/g,(m,n)=>TZ[n.trim()]?`(${TZ[n.trim()]})`:m)
-    // ── 2. 角球通報（"Corner, Switzerland."）必須在 corner→角球 之前
+    // ── 2. 事件通報（Corner/Free Kick/Goal Kick/Throw-in/Substitution，必須在單字替換前）
     .replace(/Corner, ([^.,]+)\./gi,(_,team)=>`角球 - ${TZ[team.trim()]||team.trim()}。`)
+    .replace(/Free [Kk]ick, ([^.,]+)\./gi,(_,team)=>`任意球 - ${TZ[team.trim()]||team.trim()}。`)
+    .replace(/Goal [Kk]ick, ([^.,]+)\./gi,(_,team)=>`門球 - ${TZ[team.trim()]||team.trim()}。`)
+    .replace(/Goal [Kk]ick\./gi,'門球。')
+    .replace(/Throw[\s-]?[Ii]n, ([^.,]+)\./gi,(_,team)=>`界外球 - ${TZ[team.trim()]||team.trim()}。`)
+    .replace(/Throw[\s-]?[Ii]n\./gi,'界外球。')
+    .replace(/Substitution, ([^.]+)\. ([^.]+) replaces ([^.]+)\./gi,(_,team,pIn,pOut)=>`換人（${TZ[team.trim()]||team.trim()}）：${pIn.trim()} 換下 ${pOut.trim()}。`)
+    .replace(/\bSecond [Yy]ellow [Cc]ard\b/gi,'第二張黃牌（兩黃變紅）')
+    .replace(/\bVAR [Dd]ecision:? ?/gi,'VAR裁定：').replace(/\bVAR [Oo]verthrown\b/gi,'VAR推翻判決')
+    .replace(/\bNo [Pp]enalty\b/gi,'無點球').replace(/\bPenalty [Cc]onfirmed\b/gi,'點球確認')
+    .replace(/\bOffside trap\b/gi,'越位陷阱').replace(/\bOffside call\b/gi,'越位判決')
     // ── 3. is saved/blocked/missed in position（多字短語，必須在單字替換前）
     .replace(/is saved in the bottom right(?: corner)?/gi,'被撲出（右下角）')
     .replace(/is saved in the bottom left(?: corner)?/gi,'被撲出（左下角）')
@@ -1975,8 +1985,9 @@ async function fetchLiveScores(){
       const away=comp.competitors.find(c=>c.homeAway==='away');
       if(!home||!away)return;
       const st=comp.status?.type?.name||'';
-      const isFinal=st==='STATUS_FINAL';
-      const isInProgress=st==='STATUS_IN_PROGRESS';
+      const stState=comp.status?.type?.state||'';
+      const isFinal=st==='STATUS_FINAL'||stState==='post';
+      const isInProgress=st==='STATUS_IN_PROGRESS'||stState==='in';
       if(!isFinal&&!isInProgress)return;
       const hs=parseInt(home.score||0);
       const as_=parseInt(away.score||0);
@@ -2038,118 +2049,109 @@ async function fetchLiveScores(){
     console.warn('[FIFA] ESPN Scoreboard 失敗:',e.message);
   }
 
+  // ── 共用：解析 ESPN Summary JSON → 存入 LIVE 快取並更新 R32 比分 ──
+  function storeSummary(matchId,d){
+    const comp=d.header?.competitions?.[0];
+    const homeC=comp?.competitors?.find(c=>c.homeAway==='home');
+    const awayC=comp?.competitors?.find(c=>c.homeAway==='away');
+    const state=comp?.status?.type?.state||'';
+    const minute=comp?.status?.displayClock||'';
+    const period=comp?.status?.type?.description||'';
+    if(homeC&&awayC&&(state==='in'||state==='post')){
+      const hs2=parseInt(homeC.score||0),as2=parseInt(awayC.score||0);
+      const r32m=R32.find(x=>x.id===matchId);
+      if(r32m){r32m.hs=hs2;r32m.as=as2;}
+    }
+    const events=(d.keyEvents||[]).map(e=>{
+      const aType=e.type?.type||'';
+      const player=e.athletes?.[0]?.displayName||e.participants?.[0]?.displayName||'';
+      const teamCode=ESPN_TEAM[e.team?.displayName]||e.team?.abbreviation||'';
+      return{min:e.clock?.displayValue||'',type:aType==='goal'||aType==='own-goal'?'goal':aType==='yellow-card'?'yellow':aType==='red-card'?'red':aType==='substitution'?'sub':'skip',team:teamCode,player,detail:e.type?.text||aType};
+    }).filter(e=>e.type!=='skip');
+    const commentary=[...(d.commentary||[])].sort((a,b)=>(b.sequence||0)-(a.sequence||0)).map(c=>({min:c.time?.displayValue||c.clock?.displayValue||'',text:c.text||''})).filter(c=>c.text);
+    const bsTeams=d.boxscore?.teams||[];
+    const hsTeam=bsTeams.find(t=>t.team?.homeAway==='home')||bsTeams[0];
+    const asTeam=bsTeams.find(t=>t.team?.homeAway==='away')||bsTeams[1];
+    function gs(team,key){return team?.statistics?.find(s=>s.name===key)?.displayValue||'–';}
+    function gn(team,key){return parseFloat(team?.statistics?.find(s=>s.name===key)?.value||0);}
+    const espnStats=[
+      {label:'射門',rows:[{name:'射門總數',h:gs(hsTeam,'totalShots'),a:gs(asTeam,'totalShots'),hv:gn(hsTeam,'totalShots'),av:gn(asTeam,'totalShots')},{name:'射正',h:gs(hsTeam,'shotsOnTarget'),a:gs(asTeam,'shotsOnTarget'),hv:gn(hsTeam,'shotsOnTarget'),av:gn(asTeam,'shotsOnTarget')},{name:'被封鎖',h:gs(hsTeam,'blockedShots'),a:gs(asTeam,'blockedShots'),hv:gn(hsTeam,'blockedShots'),av:gn(asTeam,'blockedShots')}]},
+      {label:'進攻',rows:[{name:'控球率',h:gs(hsTeam,'possessionPct')+'%',a:gs(asTeam,'possessionPct')+'%',hv:gn(hsTeam,'possessionPct'),av:gn(asTeam,'possessionPct'),total:100},{name:'角球',h:gs(hsTeam,'wonCorners'),a:gs(asTeam,'wonCorners'),hv:gn(hsTeam,'wonCorners'),av:gn(asTeam,'wonCorners')},{name:'越位',h:gs(hsTeam,'offsides'),a:gs(asTeam,'offsides'),hv:gn(hsTeam,'offsides'),av:gn(asTeam,'offsides')}]},
+      {label:'傳球',rows:[{name:'傳球成功率',h:gs(hsTeam,'passPct')+'%',a:gs(asTeam,'passPct')+'%',hv:gn(hsTeam,'passPct'),av:gn(asTeam,'passPct'),total:100},{name:'長傳',h:gs(hsTeam,'accurateLongBalls')+'/'+gs(hsTeam,'totalLongBalls'),a:gs(asTeam,'accurateLongBalls')+'/'+gs(asTeam,'totalLongBalls'),hv:gn(hsTeam,'accurateLongBalls'),av:gn(asTeam,'accurateLongBalls')},{name:'傳中',h:gs(hsTeam,'accurateCrosses')+'/'+gs(hsTeam,'totalCrosses'),a:gs(asTeam,'accurateCrosses')+'/'+gs(asTeam,'totalCrosses'),hv:gn(hsTeam,'accurateCrosses'),av:gn(asTeam,'accurateCrosses')}]},
+      {label:'防守',rows:[{name:'犯規',h:gs(hsTeam,'foulsCommitted'),a:gs(asTeam,'foulsCommitted'),hv:gn(hsTeam,'foulsCommitted'),av:gn(asTeam,'foulsCommitted')},{name:'解圍',h:gs(hsTeam,'effectiveClearance'),a:gs(asTeam,'effectiveClearance'),hv:gn(hsTeam,'effectiveClearance'),av:gn(asTeam,'effectiveClearance')},{name:'搶斷',h:gs(hsTeam,'effectiveTackles')+'/'+gs(hsTeam,'totalTackles'),a:gs(asTeam,'effectiveTackles')+'/'+gs(asTeam,'totalTackles'),hv:gn(hsTeam,'effectiveTackles'),av:gn(asTeam,'effectiveTackles')},{name:'攔截',h:gs(hsTeam,'interceptions'),a:gs(asTeam,'interceptions'),hv:gn(hsTeam,'interceptions'),av:gn(asTeam,'interceptions')},{name:'黃牌',h:gs(hsTeam,'yellowCards'),a:gs(asTeam,'yellowCards'),hv:gn(hsTeam,'yellowCards'),av:gn(asTeam,'yellowCards')}]},
+      {label:'門將',rows:[{name:'撲救',h:gs(hsTeam,'saves'),a:gs(asTeam,'saves'),hv:gn(hsTeam,'saves'),av:gn(asTeam,'saves')}]},
+    ];
+    const venue=d.gameInfo?.venue?.fullName||'';
+    const officials=d.gameInfo?.officials||[];
+    const referee=officials.find(o=>/referee/i.test(o.position?.displayName||''))?.displayName||officials[0]?.displayName||'';
+    const miniStats=[
+      {name:'控球率',h:gs(hsTeam,'possessionPct')+'%',a:gs(asTeam,'possessionPct')+'%'},
+      {name:'射門',h:gs(hsTeam,'totalShots'),a:gs(asTeam,'totalShots')},
+      {name:'射正',h:gs(hsTeam,'shotsOnTarget'),a:gs(asTeam,'shotsOnTarget')},
+      {name:'角球',h:gs(hsTeam,'wonCorners'),a:gs(asTeam,'wonCorners')},
+      {name:'犯規',h:gs(hsTeam,'foulsCommitted'),a:gs(asTeam,'foulsCommitted')},
+      {name:'黃牌',h:gs(hsTeam,'yellowCards'),a:gs(asTeam,'yellowCards')},
+    ];
+    LIVE[matchId]={state,minute,period,hs:homeC?parseInt(homeC.score||0):null,as:awayC?parseInt(awayC.score||0):null,events:events.length?events:null,commentary,espnStats,stats:miniStats,venue,referee,fetchedAt:Date.now()};
+  }
+
   // ── Part 2: Summary（詳細資料，含統計/評論/進球）──
-  // 取所有有 eid 的 R32 場次，並發現 LIVE 尚未快取或已過 5 分鐘
   const now=Date.now();
   const toFetch=R32.filter(m=>m.eid&&(!LIVE[m.id]||now-LIVE[m.id].fetchedAt>5*60*1000));
   if(toFetch.length>0){
-    await Promise.all(toFetch.map(async m=>{
+    await Promise.allSettled(toFetch.map(async m=>{
       try{
-        const r=await fetch(
-          `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${m.eid}`,
-          {signal:AbortSignal.timeout(10000)});
+        const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${m.eid}`,{signal:AbortSignal.timeout(10000)});
         if(!r.ok)return;
-        const d=await r.json();
-
-        // ── 比賽狀態 ──
-        const comp=d.header?.competitions?.[0];
-        const homeC=comp?.competitors?.find(c=>c.homeAway==='home');
-        const awayC=comp?.competitors?.find(c=>c.homeAway==='away');
-        const state=comp?.status?.type?.state||'';   // 'pre','in','post'
-        const minute=comp?.status?.displayClock||'';
-        const period=comp?.status?.type?.description||'';
-        if(homeC&&awayC&&(state==='in'||state==='post')){
-          const hs2=parseInt(homeC.score||0);
-          const as2=parseInt(awayC.score||0);
-          const r32m=R32.find(x=>x.id===m.id);
-          if(r32m){r32m.hs=hs2;r32m.as=as2;}
-        }
-
-        // ── Key Events (進球/牌/換人) ──
-        const events=(d.keyEvents||[]).map(e=>{
-          const aType=e.type?.type||'';
-          const player=e.athletes?.[0]?.displayName||e.participants?.[0]?.displayName||'';
-          const teamFull=e.team?.displayName||'';
-          const teamCode=ESPN_TEAM[teamFull]||e.team?.abbreviation||'';
-          return{
-            min:e.clock?.displayValue||'',
-            type:aType==='goal'||aType==='own-goal'?'goal':aType==='yellow-card'?'yellow':aType==='red-card'?'red':aType==='substitution'?'sub':'skip',
-            team:teamCode,player,detail:e.type?.text||aType
-          };
-        }).filter(e=>e.type!=='skip');
-
-        // ── Commentary（最新在前）──
-        const commentary=[...(d.commentary||[])]
-          .sort((a,b)=>(b.sequence||0)-(a.sequence||0))
-          .map(c=>({min:c.time?.displayValue||c.clock?.displayValue||'',text:c.text||''}))
-          .filter(c=>c.text);
-
-        // ── Boxscore Stats ──
-        const bsTeams=d.boxscore?.teams||[];
-        const hsTeam=bsTeams.find(t=>t.team?.homeAway==='home')||bsTeams[0];
-        const asTeam=bsTeams.find(t=>t.team?.homeAway==='away')||bsTeams[1];
-        function gs(team,key){return team?.statistics?.find(s=>s.name===key)?.displayValue||'–';}
-        function gn(team,key){return parseFloat(team?.statistics?.find(s=>s.name===key)?.value||0);}
-
-        const espnStats=[
-          {label:'射門',rows:[
-            {name:'射門總數',h:gs(hsTeam,'totalShots'),a:gs(asTeam,'totalShots'),hv:gn(hsTeam,'totalShots'),av:gn(asTeam,'totalShots')},
-            {name:'射正',h:gs(hsTeam,'shotsOnTarget'),a:gs(asTeam,'shotsOnTarget'),hv:gn(hsTeam,'shotsOnTarget'),av:gn(asTeam,'shotsOnTarget')},
-            {name:'被封鎖',h:gs(hsTeam,'blockedShots'),a:gs(asTeam,'blockedShots'),hv:gn(hsTeam,'blockedShots'),av:gn(asTeam,'blockedShots')},
-          ]},
-          {label:'進攻',rows:[
-            {name:'控球率',h:gs(hsTeam,'possessionPct')+'%',a:gs(asTeam,'possessionPct')+'%',hv:gn(hsTeam,'possessionPct'),av:gn(asTeam,'possessionPct'),total:100},
-            {name:'角球',h:gs(hsTeam,'wonCorners'),a:gs(asTeam,'wonCorners'),hv:gn(hsTeam,'wonCorners'),av:gn(asTeam,'wonCorners')},
-            {name:'越位',h:gs(hsTeam,'offsides'),a:gs(asTeam,'offsides'),hv:gn(hsTeam,'offsides'),av:gn(asTeam,'offsides')},
-          ]},
-          {label:'傳球',rows:[
-            {name:'傳球成功率',h:gs(hsTeam,'passPct')+'%',a:gs(asTeam,'passPct')+'%',hv:gn(hsTeam,'passPct'),av:gn(asTeam,'passPct'),total:100},
-            {name:'長傳',h:gs(hsTeam,'accurateLongBalls')+'/'+gs(hsTeam,'totalLongBalls'),a:gs(asTeam,'accurateLongBalls')+'/'+gs(asTeam,'totalLongBalls'),hv:gn(hsTeam,'accurateLongBalls'),av:gn(asTeam,'accurateLongBalls')},
-            {name:'傳中',h:gs(hsTeam,'accurateCrosses')+'/'+gs(hsTeam,'totalCrosses'),a:gs(asTeam,'accurateCrosses')+'/'+gs(asTeam,'totalCrosses'),hv:gn(hsTeam,'accurateCrosses'),av:gn(asTeam,'accurateCrosses')},
-          ]},
-          {label:'防守',rows:[
-            {name:'犯規',h:gs(hsTeam,'foulsCommitted'),a:gs(asTeam,'foulsCommitted'),hv:gn(hsTeam,'foulsCommitted'),av:gn(asTeam,'foulsCommitted')},
-            {name:'解圍',h:gs(hsTeam,'effectiveClearance'),a:gs(asTeam,'effectiveClearance'),hv:gn(hsTeam,'effectiveClearance'),av:gn(asTeam,'effectiveClearance')},
-            {name:'搶斷',h:gs(hsTeam,'effectiveTackles')+'/'+gs(hsTeam,'totalTackles'),a:gs(asTeam,'effectiveTackles')+'/'+gs(asTeam,'totalTackles'),hv:gn(hsTeam,'effectiveTackles'),av:gn(asTeam,'effectiveTackles')},
-            {name:'攔截',h:gs(hsTeam,'interceptions'),a:gs(asTeam,'interceptions'),hv:gn(hsTeam,'interceptions'),av:gn(asTeam,'interceptions')},
-            {name:'黃牌',h:gs(hsTeam,'yellowCards'),a:gs(asTeam,'yellowCards'),hv:gn(hsTeam,'yellowCards'),av:gn(asTeam,'yellowCards')},
-          ]},
-          {label:'門將',rows:[
-            {name:'撲救',h:gs(hsTeam,'saves'),a:gs(asTeam,'saves'),hv:gn(hsTeam,'saves'),av:gn(asTeam,'saves')},
-          ]},
-        ];
-
-        // ── 場館/裁判 ──
-        const venue=d.gameInfo?.venue?.fullName||'';
-        const officials=d.gameInfo?.officials||[];
-        const referee=officials.find(o=>/referee/i.test(o.position?.displayName||''))?.displayName||officials[0]?.displayName||'';
-
-        // ── 迷你統計（雷達頁用）──
-        const miniStats=[
-          {name:'控球率',h:gs(hsTeam,'possessionPct')+'%',a:gs(asTeam,'possessionPct')+'%'},
-          {name:'射門',h:gs(hsTeam,'totalShots'),a:gs(asTeam,'totalShots')},
-          {name:'射正',h:gs(hsTeam,'shotsOnTarget'),a:gs(asTeam,'shotsOnTarget')},
-          {name:'角球',h:gs(hsTeam,'wonCorners'),a:gs(asTeam,'wonCorners')},
-          {name:'犯規',h:gs(hsTeam,'foulsCommitted'),a:gs(asTeam,'foulsCommitted')},
-          {name:'黃牌',h:gs(hsTeam,'yellowCards'),a:gs(asTeam,'yellowCards')},
-        ];
-
-        LIVE[m.id]={
-          state,minute,period,
-          hs:homeC?parseInt(homeC.score||0):null,
-          as:awayC?parseInt(awayC.score||0):null,
-          events:events.length?events:null,
-          commentary,
-          espnStats,
-          stats:miniStats,
-          venue,referee,
-          fetchedAt:Date.now()
-        };
-      }catch(e2){
-        console.warn('[FIFA] Summary fetch failed for',m.id,e2.message);
-      }
+        storeSummary(m.id,await r.json());
+      }catch(e2){console.warn('[FIFA] Summary fetch failed for',m.id,e2.message);}
     }));
   }
+
+  // ── Part 3: EID 探索 — 掃描 ID 區間，自動發現未配對的 R32 場次 ──
+  // 只在仍有場次缺少 eid 時執行（已全部發現後此階段自動跳過）
+  const r32Start=new Date('2026-06-27T00:00:00Z').getTime();
+  const r32End  =new Date('2026-07-05T23:59:00Z').getTime();
+  const knownEids=new Set(R32.filter(m=>m.eid).map(m=>parseInt(m.eid)));
+  if(R32.some(m=>!m.eid)){
+  const probeIds=[];
+  for(let i=760400;i<=760900;i++){if(!knownEids.has(i))probeIds.push(String(i));}
+  await Promise.allSettled(probeIds.map(async eid=>{
+    try{
+      const r=await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eid}`,{signal:AbortSignal.timeout(5000)});
+      if(!r.ok)return;
+      const d=await r.json();
+      const comp=d.header?.competitions?.[0];
+      if(!comp)return;
+      const evMs=new Date(comp.date||'').getTime();
+      if(isNaN(evMs)||evMs<r32Start||evMs>r32End)return;
+      const state=comp.status?.type?.state||'';
+      if(state!=='post'&&state!=='in')return;
+      const homeC=comp.competitors?.find(c=>c.homeAway==='home');
+      const awayC=comp.competitors?.find(c=>c.homeAway==='away');
+      if(!homeC||!awayC)return;
+      const hAbb=homeC.team?.abbreviation||'';
+      const aAbb=awayC.team?.abbreviation||'';
+      const hCode=ESPN_TEAM[homeC.team?.displayName]||ESPN_TEAM[homeC.team?.shortDisplayName]||ESPN_TEAM[hAbb]||(R32.some(x=>x.h===hAbb||x.a===hAbb)?hAbb:'');
+      const aCode=ESPN_TEAM[awayC.team?.displayName]||ESPN_TEAM[awayC.team?.shortDisplayName]||ESPN_TEAM[aAbb]||(R32.some(x=>x.h===aAbb||x.a===aAbb)?aAbb:'');
+      let m=null;
+      if(hCode&&aCode)m=R32.find(x=>(x.h===hCode&&x.a===aCode)||(x.h===aCode&&x.a===hCode));
+      if(!m){
+        const best=R32.map(x=>({x,diff:Math.abs(new Date(x.kickUTC).getTime()-evMs)})).filter(({diff})=>diff<4*60*60*1000).sort((a,b)=>(a.x.hs==null?0:1)-(b.x.hs==null?0:1)||a.diff-b.diff)[0];
+        if(best)m=best.x;
+      }
+      if(m&&!m.eid){
+        const hs2=parseInt(homeC.score||0),as2=parseInt(awayC.score||0);
+        const actualHome=hCode&&m.h===hCode?true:hCode&&m.a===hCode?false:true;
+        if(actualHome){m.hs=hs2;m.as=as2;}else{m.hs=as2;m.as=hs2;}
+        m.eid=String(eid);
+        knownEids.add(parseInt(eid));
+        synced++;
+        storeSummary(m.id,d);
+      }
+    }catch(e){}
+  }));
+  } // end if(R32.some(m=>!m.eid))
 
   const n=new Date();
   const hm=`${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`;
