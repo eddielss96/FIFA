@@ -308,8 +308,9 @@ main{max-width:1100px;margin:0 auto;padding:16px;animation:fadeUp .4s ease}
       <div class="odds-row" id="odds-row"></div>
     </div>
     <p style="font-size:12px;color:var(--text2);line-height:1.7">
-      預測模型整合6項指標：<strong>xG進球期望值25%</strong>、<strong>創造機會次數20%</strong>、<strong>xGA防守穩定性20%</strong>、
-      <strong>PPDA逼搶強度15%</strong>、<strong>歷史戰績10%</strong>、<strong>盤口/狀態10%</strong>
+      預測模型採<strong>對陣路徑機率傳播</strong>：以綜合實力評分（整合 xG、創造機會、xGA、PPDA、歷史戰績）計算
+      每場對戰勝率（Elo式），再沿 32強→16強→8強→4強→決賽 逐輪傳播，得出每隊奪冠機率。
+      <strong>實際賽果會即時取代預測</strong>——每輪淘汰後機率自動重新分配。
     </p>
   </div>
   <div class="predict-section">
@@ -320,6 +321,19 @@ main{max-width:1100px;margin:0 auto;padding:16px;animation:fadeUp .4s ease}
     <h2>⚔️ 16強預測</h2>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">依32強實際結果自動生成，隨比賽更新</p>
     <div class="pred-grid" id="pred-grid-r16"></div>
+  </div>
+  <div class="predict-section" id="qf-section">
+    <h2>🛡️ 8強預測</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">機率傳播模型：綜合每支球隊晉級路徑上所有可能對手的勝率</p>
+    <div class="pred-grid" id="pred-grid-qf"></div>
+  </div>
+  <div class="predict-section" id="sf-section">
+    <h2>🔥 4強預測</h2>
+    <div class="pred-grid" id="pred-grid-sf"></div>
+  </div>
+  <div class="predict-section" id="final-section">
+    <h2>🏆 決賽預測</h2>
+    <div class="pred-grid" id="pred-grid-final"></div>
   </div>
 </div>
 
@@ -575,6 +589,28 @@ const R16_ANALYSIS={
   'COL-CPV':'哥倫比亞整體更完整，維德角再度爆冷需要奇蹟。',
   'CPV-GHA':'非洲+南美邊緣對決，兩隊均善用速度攻擊，預計激烈好看。',
 };
+
+// ========== 8強→決賽 對陣結構 ==========
+const QF_BRACKET=[
+  {id:'qf1',m1:'r16a',m2:'r16b',date:'Jul 10',venue:'波士頓'},
+  {id:'qf2',m1:'r16c',m2:'r16d',date:'Jul 10',venue:'洛杉磯'},
+  {id:'qf3',m1:'r16e',m2:'r16f',date:'Jul 11',venue:'堪薩斯城'},
+  {id:'qf4',m1:'r16g',m2:'r16h',date:'Jul 11',venue:'邁阿密'},
+];
+const SF_BRACKET=[
+  {id:'sf1',m1:'qf1',m2:'qf2',date:'Jul 14',venue:'達拉斯'},
+  {id:'sf2',m1:'qf3',m2:'qf4',date:'Jul 15',venue:'亞特蘭大'},
+];
+const FINAL_MATCH={id:'final',m1:'sf1',m2:'sf2',date:'Jul 19',venue:'紐約 MetLife'};
+// 16強起所有淘汰賽對戰（依序：16強→8強→4強→決賽）
+const KO_ALL=[
+  ...R16_BRACKET.map(b=>({...b,rnd:'16強'})),
+  ...QF_BRACKET.map(b=>({...b,rnd:'8強'})),
+  ...SF_BRACKET.map(b=>({...b,rnd:'4強'})),
+  {...FINAL_MATCH,rnd:'決賽'},
+];
+// 淘汰賽實際結果（由 ESPN 即時同步自動填入；win:'h'|'a' 處理點球決勝）
+const KO_RESULTS={};
 
 // ========== MATCH DETAIL DATA ==========
 const MD={
@@ -1679,6 +1715,54 @@ function r32Winner(mid){
   return null;
 }
 
+// ========== 淘汰賽機率傳播引擎 ==========
+// Elo式對戰勝率：divisor 45 以 PREDS_R32 的 pph 校準（FRA-SWE≈78%、ARG-CPV≈85%）
+function winProb(a,b){
+  const sa=TEAM_STR[a]||70,sb=TEAM_STR[b]||70;
+  return 1/(1+Math.pow(10,-(sa-sb)/45));
+}
+
+// 淘汰賽場次的實際晉級者（含點球決勝 win 標記）；未分曉回傳 null
+function koWinner(mid){
+  if(R32.some(x=>x.id===mid))return r32Winner(mid);
+  const r=KO_RESULTS[mid];
+  if(!r)return null;
+  if(r.win==='h')return r.h;
+  if(r.win==='a')return r.a;
+  if(r.hs!=null&&r.hs!==r.as)return r.hs>r.as?r.h:r.a;
+  return null;
+}
+
+// 對每個對戰槽位計算「各隊成為勝者」的機率分布，逐輪傳播至決賽
+function computeBracketProbs(){
+  const slots={};
+  R32.forEach(m=>{
+    const w=r32Winner(m.id);
+    if(w){slots[m.id]={[w]:1};return;}
+    const p=PREDS_R32.find(x=>x.id===m.id);
+    const ph=p?p.pph/100:winProb(m.h,m.a);
+    slots[m.id]={[m.h]:ph,[m.a]:1-ph};
+  });
+  KO_ALL.forEach(b=>{
+    const w=koWinner(b.id);
+    if(w){slots[b.id]={[w]:1};return;}
+    const d1=slots[b.m1]||{},d2=slots[b.m2]||{};
+    const res={};
+    for(const[t1,p1]of Object.entries(d1)){
+      let wp=0;
+      for(const[t2,p2]of Object.entries(d2))wp+=p2*winProb(t1,t2);
+      res[t1]=(res[t1]||0)+p1*wp;
+    }
+    for(const[t2,p2]of Object.entries(d2)){
+      let wp=0;
+      for(const[t1,p1]of Object.entries(d1))wp+=p1*winProb(t2,t1);
+      res[t2]=(res[t2]||0)+p2*wp;
+    }
+    slots[b.id]=res;
+  });
+  return slots;
+}
+
 function predCardHtml(p){
   const st=getMatchStatus(p.kickUTC);
   const tag=st==='ft'?'✅完場':st==='live'?'🔴直播':'📅即將';
@@ -1725,27 +1809,20 @@ function predCardHtml(p){
 }
 
 function buildPredictions(){
-  // ── Champion: adjust for eliminated top teams ──
-  const basePow={FRA:22,BRA:18,ARG:16,ESP:14,ENG:10,GER:8};
-  const eliminated=new Set();
-  R32.forEach(m=>{
-    if(m.hs!=null){
-      if(m.hs>m.as)eliminated.add(m.a);
-      else if(m.as>m.hs)eliminated.add(m.h);
-    }
-  });
-  const surviving=Object.entries(basePow).filter(([c])=>!eliminated.has(c));
-  const totalPow=surviving.reduce((s,[,p])=>s+p,0)||88;
-  const normPow=surviving.map(([c,p])=>({c,p:Math.round(p/totalPow*100)}));
-  const champion=normPow[0]||{c:'FRA',p:22};
-  const champFlagMap={FRA:'fr',BRA:'br',ARG:'ar',ESP:'es',ENG:'gb-eng',GER:'de',POR:'pt',NED:'nl'};
-  const cFlag=champFlagMap[champion.c]||champion.c.toLowerCase();
-  document.getElementById('champ-flag').src=`https://flagcdn.com/w80/${cFlag}.png`;
+  // ── Champion: 機率傳播引擎（決賽槽位的勝者分布＝奪冠機率）──
+  const slots=computeBracketProbs();
+  const champDist=Object.entries(slots.final||{}).sort((a,b)=>b[1]-a[1]);
+  const champion=champDist[0]?{c:champDist[0][0],p:Math.round(champDist[0][1]*100)}:{c:'FRA',p:22};
+  document.getElementById('champ-flag').src=`https://flagcdn.com/w80/${T[champion.c]?T[champion.c][0]:'fr'}.png`;
   document.getElementById('champ-name').textContent=zh(champion.c);
-  document.getElementById('champ-desc').textContent=`綜合模型預測冠軍（信心：${champion.p}%）`;
-  const otherPct=Math.max(0,100-normPow.slice(0,6).reduce((s,x)=>s+x.p,0));
+  const decided=koWinner('final');
+  document.getElementById('champ-desc').textContent=decided
+    ?`🏆 ${zh(decided)} 奪得2026世界盃冠軍！`
+    :`機率傳播模型預測冠軍（奪冠機率：${champion.p}%）`;
+  const top6=champDist.slice(0,6).map(([c,p])=>({c,p:Math.round(p*100)}));
+  const otherPct=Math.max(0,100-top6.reduce((s,x)=>s+x.p,0));
   document.getElementById('odds-row').innerHTML=
-    normPow.slice(0,6).map(x=>`<div class="odds-chip">
+    top6.map(x=>`<div class="odds-chip">
       <div class="odds-team">${tf(x.c,'fi-sm')} ${zh(x.c)}</div>
       <div class="odds-pct">${x.p}%</div>
     </div>`).join('')+
@@ -1759,9 +1836,7 @@ function buildPredictions(){
   const anyDone=R32.some(m=>m.hs!=null);
   if(!anyDone){
     r16el.innerHTML='<div style="color:var(--text2);font-size:13px;text-align:center;padding:24px">32強全部完賽後，16強預測將自動顯示</div>';
-    return;
-  }
-  r16el.innerHTML=R16_BRACKET.map(b=>{
+  }else r16el.innerHTML=R16_BRACKET.map(b=>{
     const w1=r32Winner(b.m1),w2=r32Winner(b.m2);
     const m1=R32.find(x=>x.id===b.m1),m2=R32.find(x=>x.id===b.m2);
     const p1=PREDS_R32.find(x=>x.id===b.m1),p2=PREDS_R32.find(x=>x.id===b.m2);
@@ -1814,6 +1889,59 @@ function buildPredictions(){
       <div style="font-size:11px;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">${analysis}</div>
     </div>`;
   }).join('');
+
+  // ── QF / SF / Final（機率傳播卡片）──
+  document.getElementById('pred-grid-qf').innerHTML=QF_BRACKET.map(b=>koPredCardHtml(b,slots)).join('');
+  document.getElementById('pred-grid-sf').innerHTML=SF_BRACKET.map(b=>koPredCardHtml(b,slots)).join('');
+  document.getElementById('pred-grid-final').innerHTML=koPredCardHtml(FINAL_MATCH,slots);
+}
+
+// 8強以後的預測卡片：顯示最可能對戰組合＋各自晉級機率＋預測勝者
+function koPredCardHtml(b,slots){
+  const top=d=>Object.entries(d||{}).sort((x,y)=>y[1]-x[1]);
+  const r=KO_RESULTS[b.id];
+  if(r&&r.hs!=null){
+    const w=koWinner(b.id);
+    const psNote=r.hs===r.as?'（點球決勝）':'';
+    return`<div class="pred-card">
+      <div class="pred-header"><span style="font-size:11px">✅ ${b.date} · ${b.venue}</span><span class="pred-conf" style="color:var(--green)">已完場</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:6px;flex:1">${tf(r.h,'fi-sm')}<strong>${zh(r.h)}</strong></div>
+        <div style="font-size:20px;font-weight:900;color:var(--green);min-width:50px;text-align:center">${r.hs}–${r.as}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end"><strong>${zh(r.a)}</strong>${tf(r.a,'fi-sm')}</div>
+      </div>
+      ${w?`<div style="font-size:11px;color:var(--green);text-align:center">✅ 晉級：${zh(w)}${psNote}</div>`:''}
+    </div>`;
+  }
+  const t1=top(slots[b.m1]),t2=top(slots[b.m2]);
+  const comb=top(slots[b.id]);
+  if(!t1.length||!t2.length||!comb.length)return'';
+  const c1=t1[0][0],c2=t2[0][0],w=comb[0];
+  const pairP=Math.round(t1[0][1]*t2[0][1]*100);
+  const p1=Math.round(t1[0][1]*100),p2=Math.round(t2[0][1]*100);
+  const alts=[...t1.slice(1,3),...t2.slice(1,3)]
+    .filter(([,p])=>p>=0.15)
+    .map(([c,p])=>`${zh(c)} ${Math.round(p*100)}%`).join('、');
+  const isFinal=b.id==='final';
+  return`<div class="pred-card"${isFinal?' style="border-color:var(--gold)"':''}>
+    <div class="pred-header"><span style="font-size:11px">📅 ${b.date} · ${b.venue}</span><span class="pred-conf">此對戰機率 ${pairP}%</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:6px;flex:1">${tf(c1,'fi-sm')}<strong>${zh(c1)}</strong></div>
+      <div style="font-size:16px;color:var(--border)">⚔️</div>
+      <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end"><strong>${zh(c2)}</strong>${tf(c2,'fi-sm')}</div>
+    </div>
+    <div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:3px">
+        <span>${p1}%</span><span>晉級到此輪機率</span><span>${p2}%</span>
+      </div>
+      <div style="height:6px;background:var(--dark3);border-radius:3px;overflow:hidden;display:flex">
+        <div style="width:${p1/(p1+p2)*100}%;background:var(--blue)"></div>
+        <div style="width:${p2/(p1+p2)*100}%;background:var(--red)"></div>
+      </div>
+    </div>
+    ${alts?`<div style="font-size:10px;color:var(--text2);margin-bottom:6px">其他可能：${alts}</div>`:''}
+    <div style="font-size:10px;color:var(--gold);border-top:1px solid var(--border);padding-top:8px">🔮 ${isFinal?'預測冠軍':'預測晉級'}：${zh(w[0])}（機率 ${Math.round(w[1]*100)}%）</div>
+  </div>`;
 }
 
 // ========== STATS TAB ==========
@@ -1886,29 +2014,40 @@ function buildStandings(){
 
 // ========== BRACKET TAB ==========
 function buildBracket(){
-  const matches=[
-    {rnd:'32強 ✅',h:'ZAF',a:'CAN',hs:0,as:1,note:'Eustaquio 90+2\''},
-    {rnd:'32強 Jun 30',h:'BRA',a:'JPN',pred:'巴西 72%'},
-    {rnd:'32強 Jun 30',h:'GER',a:'PRY',pred:'德國 65%'},
-    {rnd:'32強 Jun 30',h:'NED',a:'MAR',pred:'荷蘭/摩洛哥 52%'},
-    {rnd:'32強 Jul 1',h:'CIV',a:'NOR',pred:'挪威 58%'},
-    {rnd:'32強 Jul 1',h:'FRA',a:'SWE',pred:'法國 76%'},
-    {rnd:'32強 Jul 1',h:'MEX',a:'ECU',pred:'墨西哥 60%'},
-    {rnd:'32強 Jul 2',h:'ENG',a:'COD',pred:'英格蘭 79%'},
-    {rnd:'32強 Jul 2',h:'BEL',a:'SEN',pred:'比利時 63%'},
-    {rnd:'32強 Jul 2',h:'USA',a:'BIH',pred:'美國 69%'},
-    {rnd:'32強 Jul 3',h:'ESP',a:'AUT',pred:'西班牙 74%'},
-    {rnd:'32強 Jul 3',h:'POR',a:'CRO',pred:'葡萄牙 67%'},
-    {rnd:'32強 Jul 3',h:'CHE',a:'ALG',pred:'瑞士 61%'},
-    {rnd:'32強 Jul 4',h:'AUS',a:'EGY',pred:'澳洲 55%'},
-    {rnd:'32強 Jul 4',h:'ARG',a:'CPV',pred:'阿根廷 89%'},
-    {rnd:'32強 Jul 4',h:'COL',a:'GHA',pred:'哥倫比亞 66%'},
-  ];
-  document.getElementById('bracket-grid').innerHTML=matches.map(m=>{
+  const slots=computeBracketProbs();
+  const top=d=>Object.entries(d||{}).sort((x,y)=>y[1]-x[1]);
+  const cards=[];
+
+  // 32強：實際比分優先，未賽用預測
+  R32.forEach(m=>{
+    const p=PREDS_R32.find(x=>x.id===m.id);
+    const done=m.hs!=null;
+    const predTxt=!done&&p?`${zh(p.pph>=50?p.h:p.a)} ${Math.max(p.pph,100-p.pph)}%`:'';
+    cards.push({rnd:`32強 ${done?'✅':m.date}`,h:m.h,a:m.a,hs:m.hs,as:m.as,note:done?m.note:'',pred:predTxt});
+  });
+
+  // 16強→決賽：實際結果優先，否則顯示最可能對戰＋預測晉級
+  KO_ALL.forEach(b=>{
+    const r=KO_RESULTS[b.id];
+    if(r&&r.hs!=null){
+      const w=koWinner(b.id);
+      cards.push({rnd:`${b.rnd} ✅`,h:r.h,a:r.a,hs:r.hs,as:r.as,note:w?`晉級：${zh(w)}${r.hs===r.as?'（點球）':''}`:''});
+      return;
+    }
+    const t1=top(slots[b.m1])[0],t2=top(slots[b.m2])[0],w=top(slots[b.id])[0];
+    if(!t1||!t2)return;
+    cards.push({rnd:`${b.rnd} ${b.date}`,h:t1[0],a:t2[0],guess:true,
+      pred:w?`${zh(w[0])} ${Math.round(w[1]*100)}%`:''});
+  });
+
+  const champ=top(slots.final)[0];
+  const champDecided=koWinner('final');
+
+  document.getElementById('bracket-grid').innerHTML=cards.map(m=>{
     const hcc=T[m.h]?T[m.h][0]:'',acc=T[m.a]?T[m.a][0]:'';
     const done=m.hs!=null;
-    return`<div class="bracket-card">
-      <div class="bracket-rnd">${m.rnd}</div>
+    return`<div class="bracket-card"${m.guess?' style="opacity:.85"':''}>
+      <div class="bracket-rnd">${m.rnd}${m.guess?' <span style="font-size:9px;color:var(--text2)">（預測對戰）</span>':''}</div>
       <div class="bracket-match">
         <div class="bracket-team">${fi(hcc,'fi-sm')} ${zh(m.h)}</div>
         ${done?`<div class="bracket-score">${m.hs}–${m.as}</div>`:`<div style="font-size:12px;color:var(--text2)">VS</div>`}
@@ -1917,7 +2056,14 @@ function buildBracket(){
       ${m.note?`<div style="font-size:11px;color:var(--gold);margin-top:6px">${m.note}</div>`:''}
       ${m.pred?`<div style="font-size:11px;color:var(--text2);margin-top:6px">預測: <strong style="color:var(--text)">${m.pred}</strong></div>`:''}
     </div>`;
-  }).join('');
+  }).join('')+(champ?`
+    <div class="bracket-card" style="border-color:var(--gold);text-align:center">
+      <div class="bracket-rnd" style="color:var(--gold)">🏆 ${champDecided?'2026 世界盃冠軍':'預測冠軍'}</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0">
+        ${tf(champDecided||champ[0],'fi-sm')}<strong style="font-size:16px">${zh(champDecided||champ[0])}</strong>
+      </div>
+      ${champDecided?'':`<div style="font-size:11px;color:var(--text2)">奪冠機率 ${Math.round(champ[1]*100)}%</div>`}
+    </div>`:'');
 }
 
 // ========== TABS ==========
@@ -1976,6 +2122,21 @@ async function fetchLiveScores(){
   el.textContent='⏳ 同步中...';
   let synced=0;
 
+  // ── 共用：將 ESPN 賽事寫入 16強以後的淘汰賽結果 ──
+  // 兩隊代碼必須等於某 KO 場次上游兩位晉級者（上游未分曉則不配對，避免誤判）
+  function recordKO(hCode,aCode,hs,as,winFlag,eid,inProgress,clock){
+    if(!hCode||!aCode)return false;
+    const b=KO_ALL.find(x=>{
+      const w1=koWinner(x.m1),w2=koWinner(x.m2);
+      return w1&&w2&&((w1===hCode&&w2===aCode)||(w1===aCode&&w2===hCode));
+    });
+    if(!b)return false;
+    KO_RESULTS[b.id]={h:hCode,a:aCode,hs,as,win:winFlag,eid:eid?String(eid):KO_RESULTS[b.id]?.eid,
+      live:!!inProgress,clock:clock||''};
+    synced++;
+    return true;
+  }
+
   // ── Part 1: Scoreboard（多日期取分，含歷史完場）──
   function processScoreboard(data){
     (data.events||[]).forEach(ev=>{
@@ -2020,6 +2181,10 @@ async function fetchLiveScores(){
         if(isInProgress){const min=comp.status?.displayClock||'';m.note=`🔴 ${min} 進行中`;}
         if(!m.eid&&ev.id)m.eid=String(ev.id);
         synced++;
+      }else{
+        // 3rd try: 16強以後的淘汰賽（依上游晉級者配對）
+        const winFlag=home.winner===true?(hCode?'h':null):away.winner===true?(aCode?'a':null):null;
+        recordKO(hCode,aCode,hs,as_,winFlag,ev.id,isInProgress,comp.status?.displayClock||'');
       }
     });
   }
@@ -2034,6 +2199,15 @@ async function fetchLiveScores(){
   R32.forEach(m=>{
     const d=new Date(m.kickUTC);
     dateSet.add(`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}`);
+  });
+  // 16強以後：已到比賽日（含前後一天，涵蓋美國晚場的UTC日期偏移）
+  KO_ALL.forEach(b=>{
+    const d=new Date(`${b.date}, 2026`);
+    if(isNaN(d)||d.getTime()>nowMs+2*86400000)return;
+    [0,1].forEach(off=>{
+      const dt=new Date(d.getTime()+off*86400000);
+      dateSet.add(`${dt.getUTCFullYear()}${String(dt.getUTCMonth()+1).padStart(2,'0')}${String(dt.getUTCDate()).padStart(2,'0')}`);
+    });
   });
 
   try{
@@ -2097,7 +2271,10 @@ async function fetchLiveScores(){
 
   // ── Part 2: Summary（詳細資料，含統計/評論/進球）──
   const now=Date.now();
-  const toFetch=R32.filter(m=>m.eid&&(!LIVE[m.id]||now-LIVE[m.id].fetchedAt>5*60*1000));
+  const toFetch=[
+    ...R32.filter(m=>m.eid).map(m=>({id:m.id,eid:m.eid})),
+    ...KO_ALL.filter(b=>KO_RESULTS[b.id]?.eid).map(b=>({id:b.id,eid:KO_RESULTS[b.id].eid})),
+  ].filter(m=>!LIVE[m.id]||now-LIVE[m.id].fetchedAt>5*60*1000);
   if(toFetch.length>0){
     await Promise.allSettled(toFetch.map(async m=>{
       try{
@@ -2108,12 +2285,21 @@ async function fetchLiveScores(){
     }));
   }
 
-  // ── Part 3: EID 探索 — 掃描 ID 區間，自動發現未配對的 R32 場次 ──
-  // 只在仍有場次缺少 eid 時執行（已全部發現後此階段自動跳過）
+  // ── Part 3: EID 探索 — 掃描 ID 區間，自動發現未配對的淘汰賽場次（32強→決賽）──
+  // 只在仍有未發現的場次時執行（R32 缺 eid，或 KO 場次已到比賽日但無結果）
   const r32Start=new Date('2026-06-27T00:00:00Z').getTime();
   const r32End  =new Date('2026-07-05T23:59:00Z').getTime();
-  const knownEids=new Set(R32.filter(m=>m.eid).map(m=>parseInt(m.eid)));
-  if(R32.some(m=>!m.eid)){
+  const koEnd   =new Date('2026-07-20T23:59:00Z').getTime();
+  const knownEids=new Set([
+    ...R32.filter(m=>m.eid).map(m=>parseInt(m.eid)),
+    ...Object.values(KO_RESULTS).filter(r=>r.eid).map(r=>parseInt(r.eid)),
+  ]);
+  const koPending=KO_ALL.some(b=>{
+    if(KO_RESULTS[b.id]?.eid)return false;
+    const d=new Date(`${b.date}, 2026`);
+    return !isNaN(d)&&Date.now()>d.getTime()&&koWinner(b.m1)&&koWinner(b.m2);
+  });
+  if(R32.some(m=>!m.eid)||koPending){
   const probeIds=[];
   for(let i=760400;i<=760900;i++){if(!knownEids.has(i))probeIds.push(String(i));}
   await Promise.allSettled(probeIds.map(async eid=>{
@@ -2124,7 +2310,7 @@ async function fetchLiveScores(){
       const comp=d.header?.competitions?.[0];
       if(!comp)return;
       const evMs=new Date(comp.date||'').getTime();
-      if(isNaN(evMs)||evMs<r32Start||evMs>r32End)return;
+      if(isNaN(evMs)||evMs<r32Start||evMs>koEnd)return;
       const state=comp.status?.type?.state||'';
       if(state!=='post'&&state!=='in')return;
       const homeC=comp.competitors?.find(c=>c.homeAway==='home');
@@ -2134,6 +2320,17 @@ async function fetchLiveScores(){
       const aAbb=awayC.team?.abbreviation||'';
       const hCode=ESPN_TEAM[homeC.team?.displayName]||ESPN_TEAM[homeC.team?.shortDisplayName]||ESPN_TEAM[hAbb]||(R32.some(x=>x.h===hAbb||x.a===hAbb)?hAbb:'');
       const aCode=ESPN_TEAM[awayC.team?.displayName]||ESPN_TEAM[awayC.team?.shortDisplayName]||ESPN_TEAM[aAbb]||(R32.some(x=>x.h===aAbb||x.a===aAbb)?aAbb:'');
+      const hs2=parseInt(homeC.score||0),as2=parseInt(awayC.score||0);
+      if(evMs>r32End){
+        // 16強以後：依上游晉級者配對
+        const winFlag=homeC.winner===true?'h':awayC.winner===true?'a':null;
+        if(recordKO(hCode,aCode,hs2,as2,winFlag,eid,state==='in',comp.status?.displayClock||'')){
+          knownEids.add(parseInt(eid));
+          const rec=Object.entries(KO_RESULTS).find(([,v])=>v.eid===String(eid));
+          if(rec)storeSummary(rec[0],d);
+        }
+        return;
+      }
       let m=null;
       if(hCode&&aCode)m=R32.find(x=>(x.h===hCode&&x.a===aCode)||(x.h===aCode&&x.a===hCode));
       if(!m){
@@ -2141,7 +2338,6 @@ async function fetchLiveScores(){
         if(best)m=best.x;
       }
       if(m&&!m.eid){
-        const hs2=parseInt(homeC.score||0),as2=parseInt(awayC.score||0);
         const actualHome=hCode&&m.h===hCode?true:hCode&&m.a===hCode?false:true;
         if(actualHome){m.hs=hs2;m.as=as2;}else{m.hs=as2;m.as=hs2;}
         m.eid=String(eid);
@@ -2151,7 +2347,7 @@ async function fetchLiveScores(){
       }
     }catch(e){}
   }));
-  } // end if(R32.some(m=>!m.eid))
+  } // end 探索條件
 
   const n=new Date();
   const hm=`${n.getHours().toString().padStart(2,'0')}:${n.getMinutes().toString().padStart(2,'0')}`;
