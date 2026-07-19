@@ -272,6 +272,10 @@ main{max-width:1100px;margin:0 auto;padding:16px;animation:fadeUp .4s ease}
       <span class="filter-label">賽制</span>
       <button class="filt on" id="f-all" onclick="setRound('all')">全部</button>
       <button class="filt" id="f-r32" onclick="setRound('r32')">32強</button>
+      <button class="filt" id="f-r16" onclick="setRound('r16')">16強</button>
+      <button class="filt" id="f-qf" onclick="setRound('qf')">8強</button>
+      <button class="filt" id="f-sf" onclick="setRound('sf')">4強</button>
+      <button class="filt" id="f-final" onclick="setRound('final')">決賽</button>
       <button class="filt" id="f-gs3" onclick="setRound('gs3')">小組R3</button>
       <button class="filt" id="f-gs2" onclick="setRound('gs2')">小組R2</button>
       <button class="filt" id="f-gs1" onclick="setRound('gs1')">小組R1</button>
@@ -1167,9 +1171,10 @@ function toggleFilt(type){
   renderMatches();
 }
 
+const ROUND_FILT_IDS=['all','r32','r16','qf','sf','final','gs3','gs2','gs1'];
 function setRound(r){
   activeRound=r;activeGrp=null;
-  ['all','r32','gs3','gs2','gs1'].forEach(x=>document.getElementById('f-'+x).classList.toggle('on',x===r));
+  ROUND_FILT_IDS.forEach(x=>document.getElementById('f-'+x).classList.toggle('on',x===r));
   'ABCDEFGHIJKL'.split('').forEach(x=>{const el=document.getElementById('f-'+x);if(el)el.classList.remove('on')});
   renderMatches();
 }
@@ -1180,23 +1185,52 @@ function setGrp(g){
     'ABCDEFGHIJKL'.split('').forEach(x=>{const el=document.getElementById('f-'+x);if(el)el.classList.remove('on')});
     activeGrp=g;document.getElementById('f-'+g).classList.add('on');
     activeRound='all';
-    ['all','r32','gs3','gs2','gs1'].forEach(x=>document.getElementById('f-'+x).classList.remove('on'));
+    ROUND_FILT_IDS.forEach(x=>document.getElementById('f-'+x).classList.remove('on'));
     document.getElementById('f-all').classList.add('on');
   }
   renderMatches();
 }
 
 // ========== BUILD ALL MATCHES ==========
+// 淘汰賽輪次定義：16強以後皆依「機率傳播」引擎解析對戰雙方——
+// 實際晉級者已定（機率=100%）視為正式賽程；未定則以目前最可能組合顯示為預測對戰
+const KO_ROUND_DEFS=[{list:R16_BRACKET,label:'16強'},{list:QF_BRACKET,label:'8強'},{list:SF_BRACKET,label:'4強'},{list:[FINAL_MATCH],label:'決賽'}];
 function buildAll(){
   const gsArr=GM.map(m=>({type:'gs',id:m[8],h:m[0],a:m[1],hs:m[2],as:m[3],date:m[4],grp:m[5],rnd:m[6],note:m[7],status:'ft',kickUTC:null,venue:null}));
   const r32Arr=R32.map(m=>({type:'r32',id:m.id,h:m.h,a:m.a,hs:m.hs,as:m.as,date:m.date,grp:null,rnd:null,note:m.note,kickUTC:m.kickUTC,venue:m.venue,status:getMatchStatus(m.kickUTC)}));
-  return[...r32Arr,...gsArr];
+  const slots=computeBracketProbs();
+  const top=d=>Object.entries(d||{}).sort((x,y)=>y[1]-x[1])[0];
+  const koArr=[];
+  KO_ROUND_DEFS.forEach(({list,label})=>{
+    list.forEach(b=>{
+      const r=KO_RESULTS[b.id];
+      const kd=new Date(`${b.date}, 2026`);
+      const kickUTC=isNaN(kd)?null:kd.toISOString();
+      if(r&&r.hs!=null){
+        koArr.push({type:'ko',rndLabel:label,id:b.id,h:r.h,a:r.a,hs:r.hs,as:r.as,date:b.date,
+          note:r.hs===r.as?'⚽ 點球決勝':(r.live?`🔴 ${r.clock||''} 進行中`:''),kickUTC,venue:b.venue,
+          status:r.live?'live':'ft',guess:false});
+        return;
+      }
+      const t1=top(slots[b.m1]),t2=top(slots[b.m2]);
+      if(!t1||!t2)return;
+      const guess=t1[1]<0.999||t2[1]<0.999;
+      koArr.push({type:'ko',rndLabel:label,id:b.id,h:t1[0],a:t2[0],hs:null,as:null,date:b.date,
+        note:'',kickUTC,venue:b.venue,
+        status:guess?'soon':(kickUTC?getMatchStatus(kickUTC):'soon'),guess});
+    });
+  });
+  return[...r32Arr,...koArr,...gsArr];
 }
 
 function applyFilters(matches,q){
   const ql=q.toLowerCase().trim();
   return matches.filter(m=>{
     if(activeRound==='r32'&&m.type!=='r32')return false;
+    if(activeRound==='r16'&&!(m.type==='ko'&&m.rndLabel==='16強'))return false;
+    if(activeRound==='qf'&&!(m.type==='ko'&&m.rndLabel==='8強'))return false;
+    if(activeRound==='sf'&&!(m.type==='ko'&&m.rndLabel==='4強'))return false;
+    if(activeRound==='final'&&!(m.type==='ko'&&m.rndLabel==='決賽'))return false;
     if(activeRound==='gs1'&&!(m.type==='gs'&&m.rnd==='1'))return false;
     if(activeRound==='gs2'&&!(m.type==='gs'&&m.rnd==='2'))return false;
     if(activeRound==='gs3'&&!(m.type==='gs'&&m.rnd==='3'))return false;
@@ -1218,7 +1252,11 @@ function renderCard(m){
   const st=m.status;
   const hasScore=(m.hs!==null&&m.as!==null);
   let statusHtml,scoreHtml,cardCls='mcard done-card';
-  if(st==='live'||st==='starting'){
+  if(m.guess){
+    cardCls='mcard';
+    statusHtml=`<span class="mcard-status" style="color:var(--gold);opacity:.85">🔮 預測對戰</span>`;
+    scoreHtml=`<div class="mcard-score preview">VS</div>`;
+  }else if(st==='live'||st==='starting'){
     cardCls='mcard live-card';
     statusHtml=`<span class="mcard-status status-live">🔴 進行中</span>`;
     scoreHtml=hasScore?`<div class="mcard-score live-score">${m.hs}–${m.as}</div>`:`<div class="mcard-score preview">VS</div>`;
@@ -1230,7 +1268,7 @@ function renderCard(m){
     statusHtml=`<span class="mcard-status status-soon">${m.date}</span>`;
     scoreHtml=`<div class="mcard-score preview">VS</div>`;
   }
-  const grpLabel=m.type==='r32'?'32強':(m.grp?`${m.grp}組 R${m.rnd}`:'');
+  const grpLabel=m.type==='r32'?'32強':m.type==='ko'?m.rndLabel:(m.grp?`${m.grp}組 R${m.rnd}`:'');
   return`<div class="${cardCls}" onclick="openMatch('${m.id}')">
     <div class="mcard-meta"><span class="mcard-grp">${grpLabel}${m.date?' · '+m.date:''}</span>${statusHtml}</div>
     <div class="mcard-teams">
@@ -1245,18 +1283,21 @@ function renderCard(m){
 
 function renderMatches(){
   const q=document.getElementById('q').value||'';
-  const filtered=applyFilters(buildAll(),q);
-  document.getElementById('result-count').textContent=`顯示 ${filtered.length} / 88 場`;
+  const all=buildAll();
+  const filtered=applyFilters(all,q);
+  document.getElementById('result-count').textContent=`顯示 ${filtered.length} / ${all.length} 場`;
 
-  const r32live=[],r32soon=[],r32done=[];
+  // 32強 + 16強→決賽：一律以「進行中／即將／完場」三段呈現
+  const koSections=[
+    {label:'32強',pred:m=>m.type==='r32'},
+    {label:'16強',pred:m=>m.type==='ko'&&m.rndLabel==='16強'},
+    {label:'8強',pred:m=>m.type==='ko'&&m.rndLabel==='8強'},
+    {label:'4強',pred:m=>m.type==='ko'&&m.rndLabel==='4強'},
+    {label:'決賽',pred:m=>m.type==='ko'&&m.rndLabel==='決賽'},
+  ];
   const gs3=[],gs2=[],gs1=[];
   filtered.forEach(m=>{
-    if(m.type==='r32'){
-      const s=m.status;
-      if(s==='live'||s==='starting')r32live.push(m);
-      else if(s==='ft')r32done.push(m);
-      else r32soon.push(m);
-    }else{
+    if(m.type==='gs'){
       if(m.rnd==='3')gs3.push(m);
       else if(m.rnd==='2')gs2.push(m);
       else gs1.push(m);
@@ -1264,23 +1305,30 @@ function renderMatches(){
   });
 
   let html='';
-  if(r32live.length){
-    html+=`<div class="round-section"><div class="round-header"><h3>🔴 進行中 – 32強</h3><span class="round-badge badge-r32">${r32live.length}場</span></div>
-    <div class="matches-grid">${r32live.map(renderCard).join('')}</div></div>`;
-  }
-  if(r32soon.length){
-    const byDate={};
-    r32soon.forEach(m=>{(byDate[m.date]||(byDate[m.date]=[])).push(m)});
-    html+=`<div class="round-section"><div class="round-header"><h3>📅 即將 – 32強</h3><span class="round-badge badge-r32">${r32soon.length}場</span></div>`;
-    Object.entries(byDate).forEach(([d,ms])=>{
-      html+=`<div class="date-title">${d} <span>${ms.length}場</span></div><div class="matches-grid">${ms.map(renderCard).join('')}</div>`;
-    });
-    html+=`</div>`;
-  }
-  if(r32done.length){
-    html+=`<div class="round-section"><div class="round-header"><h3>✅ 完場 – 32強</h3><span class="round-badge badge-r32">${r32done.length}場</span></div>
-    <div class="matches-grid">${r32done.map(renderCard).join('')}</div></div>`;
-  }
+  koSections.forEach(({label,pred})=>{
+    const list=filtered.filter(pred);
+    if(!list.length)return;
+    const live=list.filter(m=>m.status==='live'||m.status==='starting');
+    const soon=list.filter(m=>m.status!=='live'&&m.status!=='starting'&&m.status!=='ft');
+    const done=list.filter(m=>m.status==='ft');
+    if(live.length){
+      html+=`<div class="round-section"><div class="round-header"><h3>🔴 進行中 – ${label}</h3><span class="round-badge badge-r32">${live.length}場</span></div>
+      <div class="matches-grid">${live.map(renderCard).join('')}</div></div>`;
+    }
+    if(soon.length){
+      const byDate={};
+      soon.forEach(m=>{(byDate[m.date]||(byDate[m.date]=[])).push(m)});
+      html+=`<div class="round-section"><div class="round-header"><h3>📅 即將 – ${label}</h3><span class="round-badge badge-r32">${soon.length}場</span></div>`;
+      Object.entries(byDate).forEach(([d,ms])=>{
+        html+=`<div class="date-title">${d} <span>${ms.length}場</span></div><div class="matches-grid">${ms.map(renderCard).join('')}</div>`;
+      });
+      html+=`</div>`;
+    }
+    if(done.length){
+      html+=`<div class="round-section"><div class="round-header"><h3>✅ 完場 – ${label}</h3><span class="round-badge badge-r32">${done.length}場</span></div>
+      <div class="matches-grid">${done.map(renderCard).join('')}</div></div>`;
+    }
+  });
   if(gs3.length){
     html+=`<div class="round-section"><div class="round-header"><h3>小組賽 第3輪</h3><span class="round-badge badge-gs3">${gs3.length}場</span></div>
     <div class="matches-grid">${gs3.map(renderCard).join('')}</div></div>`;
@@ -1373,7 +1421,7 @@ function openMatch(id){
   // 無詳細資料時顯示基礎資訊（不提前返回，改為生成簡單面板）
   if(!Object.keys(md).length && !Object.keys(lv).length){
     document.getElementById('modal-tabs').innerHTML='';
-    const grpLabel=m.type==='r32'?'32強 淘汰賽':`${m.grp}組 第${m.rnd}輪`;
+    const grpLabel=m.type==='r32'?'32強 淘汰賽':m.type==='ko'?`${m.rndLabel} 淘汰賽`:`${m.grp}組 第${m.rnd}輪`;
     const predData=PRED&&PRED[id];
     const predHtml=predData?`
       <div style="background:var(--dark3);border-radius:10px;padding:14px;margin-top:10px">
